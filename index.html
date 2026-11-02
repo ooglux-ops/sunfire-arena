@@ -148,6 +148,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 {
 const $=id=>document.getElementById(id);
@@ -703,30 +704,47 @@ const TYPES={
  bomber:{hp:22,speed:8.5,r:.7,h:1.3,score:10,model:'skull_hopper',color:0xd9c08a,anims:{move:'Jump',attack:'Bite_Front',hit:'HitRecieve',death:'Death'},moveSpeed:1.6},
  grunt:{hp:70,speed:5,r:.8,h:2.6,score:25,model:'demon',color:0x8a2a2a,anims:{move:'Walk',idle:'Idle',attack:'Punch',hit:'HitReact',death:'Death'},moveSpeed:1},
  flyer:{hp:40,speed:10,r:.8,h:1.7,score:20,model:'imp',color:0x8a2222,anims:{move:'Fast_Flying',idle:'Flying_Idle',attack:'Headbutt',hit:'HitReact',death:'Death'},moveSpeed:1},
- brute:{hp:480,speed:5.2,r:1.6,h:4.0,score:150,model:'orc_brute',color:0x5f7d2c,anims:{move:'Walk',run:'Run',attack:'Punch',hit:'HitReact',death:'Death'},moveSpeed:1,heavy:1,knock:.15,turn:4,drop:1},
- shield:{hp:190,speed:4.4,r:.95,h:2.9,score:40,model:'demon',color:0x4a5668,tint:0x56657a,tintK:.6,anims:{move:'Walk',idle:'Idle',attack:'Punch',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'grunt',snd:'grunt',knock:.3,turn:1.5,drop:.4,
+ brute:{hp:480,speed:5.2,noRun:1,r:1.6,h:4.0,score:150,model:'orc_brute',color:0x5f7d2c,anims:{move:'Walk',run:'Run',attack:'Punch',hit:'HitReact',death:'Death'},moveSpeed:1,heavy:1,knock:.15,turn:4,drop:1},
+ shield:{hp:190,speed:3.6,noRun:1,r:.95,h:2.9,score:40,model:'demon',color:0x4a5668,tint:0x56657a,tintK:.6,anims:{move:'Walk',idle:'Idle',attack:'Punch',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'grunt',snd:'grunt',knock:.3,turn:1.5,drop:.4,
   intro:['BULWARK','SHIELD BLOCKS SHOTS FROM THE FRONT · FLANK IT OR LOB THE MORTAR']},
  sniper:{hp:65,speed:4.5,r:.8,h:2.4,score:35,model:'demon',color:0x2a2a30,tint:0x26262e,tintK:.7,anims:{move:'Walk',idle:'Idle',attack:'Weapon',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'grunt',snd:'grunt',knock:.6,drop:.3,
   intro:['SNIPER','ITS RED LASER IS AIMED AT YOU · HIDE BEHIND COVER']},
- summoner:{hp:150,speed:3.6,r:.95,h:3.1,score:60,model:'demon',color:0x5a2a7a,tint:0x7a3aa8,tintK:.6,anims:{move:'Walk',idle:'Idle',attack:'Wave',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'grunt',snd:'grunt',knock:.5,drop:.6,
+ summoner:{hp:150,speed:3.6,noRun:1,r:.95,h:3.1,score:60,model:'demon',color:0x5a2a7a,tint:0x7a3aa8,tintK:.6,anims:{move:'Walk',idle:'Idle',attack:'Wave',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'grunt',snd:'grunt',knock:.5,drop:.6,
   intro:['CALLER','IT KEEPS SUMMONING SKULLS · KILL IT FIRST']},
  splitter:{hp:140,speed:5.6,r:1.1,h:2.3,score:30,model:'skull_hopper',color:0x6f9a3a,tint:0x5f9a2a,tintK:.55,anims:{move:'Walk',attack:'Bite_Front',hit:'HitRecieve',death:'Death'},moveSpeed:1.1,hits:'bomber',snd:'flyer',knock:.5,drop:.25,
   intro:['BROODSKULL','BURSTS INTO THREE SKULLS WHEN KILLED']},
  queen:{hp:2100,speed:4.3,r:2.6,h:4.8,score:0,model:'skull_hopper',color:0xb89a70,tint:0x9a3a22,tintK:.35,anims:{move:'Walk',run:'Jump',attack:'Bite_Front',hit:'HitRecieve',death:'Death'},moveSpeed:.9,hits:'bomber',snd:'brute',heavy:1,knock:.03,turn:3,drop:1,boss:1,name:'THE BROOD QUEEN',noHit:1},
- raptor:{hp:55,speed:11.5,r:.9,h:1.9,score:20,model:'raptor',color:0x6a7a3a,anims:{move:'Velociraptor_Run',idle:'Velociraptor_Idle',attack:'Velociraptor_Attack',run:'Velociraptor_Jump',death:'Velociraptor_Death'},moveSpeed:1,snd:'flyer',sfx:'screech',noHit:1,knock:.8,drop:.1,turn:7,
+ raptor:{hp:55,speed:10,r:.9,h:1.9,score:20,model:'raptor',color:0x6a7a3a,anims:{move:'Velociraptor_Run',idle:'Velociraptor_Idle',attack:'Velociraptor_Attack',leap:'Velociraptor_Jump',death:'Velociraptor_Death'},moveSpeed:1,snd:'flyer',sfx:'screech',noHit:1,knock:.8,drop:.1,turn:7,
   intro:['RAPTORS','THEY HUNT IN PACKS AND POUNCE · KEEP MOVING']},
- spider:{hp:30,speed:8.5,r:1,h:1.1,score:8,model:'spider',color:0x2a2a2a,anims:{move:'Spider_Walk',idle:'Spider_Idle',attack:'Spider_Attack',death:'Spider_Death'},moveSpeed:1.2,snd:'flyer',sfx:'chitter',noHit:1,knock:1,drop:.05,turn:8,
+ spider:{hp:34,speed:6.5,r:1.3,h:1.5,score:8,model:'spider',color:0x2a2a2a,tint:0x2b2018,tintK:.7,maxRate:5,anims:{move:'Spider_Walk',idle:'Spider_Idle',attack:'Spider_Attack',death:'Spider_Death'},moveSpeed:1.2,snd:'flyer',sfx:'chitter',noHit:1,knock:1,drop:.05,turn:8,
   intro:['GIANT SPIDERS','FAST AND MANY · HOSE THEM WITH THE CHAINGUN']},
  wasp:{hp:20,speed:15,r:.7,h:1,score:8,model:'wasp',color:0xd0a020,anims:{move:'Wasp_Flying',attack:'Wasp_Attack',death:'Wasp_Death'},moveSpeed:1,fly:1,snd:'flyer',sfx:'buzz',noHit:1,knock:1.4,drop:.04,turn:10,
   intro:['WASPS','A BUZZING SWARM · SPRAY THEM']},
- trike:{hp:650,speed:4.5,r:1.7,h:2.6,score:120,model:'trike',color:0x7a6a50,anims:{move:'Triceratops_Walk',run:'Triceratops_Run',idle:'Triceratops_Idle',attack:'Triceratops_Attack',death:'Triceratops_Death'},moveSpeed:1,heavy:1,knock:.05,turn:3,drop:1,snd:'brute',sfx:'roar',noHit:1,
+ trike:{hp:650,speed:4.6,r:1.7,h:2.6,score:120,model:'trike',color:0x7a6a50,anims:{move:'Triceratops_Walk',run:'Triceratops_Run',idle:'Triceratops_Idle',attack:'Triceratops_Attack',death:'Triceratops_Death'},moveSpeed:1,heavy:1,knock:.05,turn:3,drop:1,snd:'brute',sfx:'roar',noHit:1,
   intro:['TRICERATOPS','IT CHARGES IN A STRAIGHT LINE · SIDESTEP, OR MAKE IT HIT A WALL']},
- bull:{hp:120,speed:21,r:1.2,h:2,score:30,model:'bull',color:0x5a3a2a,anims:{move:'Gallop',idle:'Idle',attack:'Attack_Headbutt',death:'Death'},moveSpeed:1,snd:'brute',noHit:1,knock:.3,drop:.15},
+ bull:{hp:120,speed:15,r:1.3,h:2.3,score:30,model:'bull',color:0x5a3a2a,anims:{move:'Gallop',idle:'Idle',attack:'Attack_Headbutt',death:'Death'},moveSpeed:1,snd:'brute',noHit:1,knock:.3,drop:.15},
  trex:{hp:3400,speed:6,r:3,h:6.5,score:0,model:'trex',color:0x5a6a3a,anims:{move:'TRex_Walk',run:'TRex_Run',idle:'TRex_Idle',attack:'TRex_Attack',death:'TRex_Death'},moveSpeed:1,snd:'brute',sfx:'roar',heavy:1,knock:.02,turn:2.2,drop:1,boss:1,name:'THE TYRANT',noHit:1},
  stormimp:{hp:1800,speed:13,r:2.2,h:5.2,score:0,model:'imp',color:0x6a2a8a,tint:0x3a2a7a,tintK:.45,anims:{move:'Fast_Flying',idle:'Flying_Idle',attack:'Headbutt',hit:'HitReact',death:'Death'},moveSpeed:1,hits:'flyer',snd:'brute',heavy:1,knock:.05,turn:5,drop:1,boss:1,fly:1,name:'THE STORM CALLER',noHit:1}
 };
 TYPES.flyer.fly=1;TYPES.flyer.drop=.08;TYPES.grunt.knock=.6;TYPES.grunt.drop=.3;TYPES.bomber.drop=.08;
 const UPV=new THREE.Vector3(0,1,0);
+const GAIT={demon:{walk:1.8/2.6,run:6.1/2.6,runClip:'Run'},orc_brute:{walk:2.8/4,run:9.1/4,runClip:'Run'},raptor:{run:3.9/1.9},spider:{walk:1.6/1.5},
+ trike:{walk:.5/2.6,run:4.2/2.6,runClip:'Triceratops_Run'},trex:{walk:5.1/6.5,run:10.5/6.5,runClip:'TRex_Run'},bull:{run:4.1/2}};
+const ORGANIC={raptor:[9,.32],spider:[7,.4],trike:[9,.3],trex:[10,.3],bull:[8,.22],wasp:[6,.25]};
+const NOISE_GLSL=`float h3(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float vn(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm3(vec3 p){float a=.5,s=0.;for(int k=0;k<4;k++){s+=a*vn(p);p*=2.03;a*=.5;}return s;}`;
+function organic(m,freq,amt){m.flatShading=false;m.roughness=Math.max(m.roughness??.8,.72);m.metalness=0;
+ m.onBeforeCompile=sh=>{sh.uniforms.uF={value:freq};sh.uniforms.uA={value:amt};
+  sh.vertexShader='varying vec3 vOP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vOP=position;');
+  sh.fragmentShader='varying vec3 vOP;uniform float uF;uniform float uA;\n'+NOISE_GLSL+'\n'+sh.fragmentShader
+   .replace('#include <color_fragment>','#include <color_fragment>\n float nB=fbm3(vOP*uF);float nS=fbm3(vOP*uF*4.3+7.1);diffuseColor.rgb*=clamp(1.-uA*(1.1*nB+.8*nS-.95),.35,1.3);')
+   .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n roughnessFactor=clamp(roughnessFactor*(.8+.4*nS),0.,1.);');};
+ m.customProgramCacheKey=()=>'org'+freq.toFixed(3)+'_'+amt;m.needsUpdate=true;}
+const prepped=new Set();
+function prepCreature(name){if(prepped.has(name)||!MODELS[name])return;prepped.add(name);
+ // smooth the faceted low-poly shading: weld vertices, then rebuild normals so bodies read as round, not folded paper
+ MODELS[name].scene.traverse(o=>{if(o.isMesh&&o.geometry){let g=o.geometry;if(g.attributes.normal)g.deleteAttribute('normal');g=mergeVertices(g,1e-4);g.computeVertexNormals();o.geometry=g;}});}
 const orbMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,opacity:.95,depthWrite:false});
 const ORB={summoner:orbMat(0xb06cff),bounty:orbMat(0xffd040),eye:orbMat(0xff2a1a)};
 const shieldMat=new THREE.MeshStandardMaterial({color:0xa9adb3,metalness:.55,roughness:.42,emissive:0x1a1a1a});
@@ -737,15 +755,17 @@ const laserB=new THREE.MeshBasicMaterial({color:0xff6a50,transparent:true,opacit
 const seenIntro=new Set();const SHG=[new THREE.BoxGeometry(1.55,2.05,.14),new THREE.BoxGeometry(1.7,.16,.2),new THREE.CylinderGeometry(.22,.26,.16,14)];
 function findClip(clips,name){return clips.find(c=>c.name.split('|').pop()==name);}
 function buildEnemy(type){const T=TYPES[type];const src=MODELS[T.model];const g=new THREE.Group();
+ if(ORGANIC[type]||ORGANIC[T.model])prepCreature(T.model);
  const model=SkeletonUtils.clone(src.scene);
  // fit model height
  if(!T.scale){src.scene.updateMatrixWorld(true);let bb=new THREE.Box3().setFromObject(src.scene,true);if(!isFinite(bb.max.y))bb=new THREE.Box3().setFromObject(src.scene);T.scale=T.h/(bb.max.y-bb.min.y);T.y0=-bb.min.y*T.scale;}
  model.scale.setScalar(T.scale);model.position.y=T.y0;g.add(model);
- const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);}});
+ const mats=[];const org=ORGANIC[T.model];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();if(org){o.geometry.computeBoundingBox();const sz=o.geometry.boundingBox.getSize(new THREE.Vector3());organic(o.material,org[0]/Math.max(sz.x,sz.y,sz.z,1e-3)*2.2,org[1]);}mats.push(o.material);}});
  const bl=blob(T.r*2.6);g.add(bl);
  const mixer=new THREE.AnimationMixer(model);const acts={};
  for(const[k,n]of Object.entries(T.anims)){const c=findClip(src.animations,n);if(c)acts[k]=mixer.clipAction(c);}
- ['attack','hit','death'].forEach(k=>{if(acts[k]){acts[k].setLoop(THREE.LoopOnce);acts[k].clampWhenFinished=true;}});
+ ['attack','hit','death','leap'].forEach(k=>{if(acts[k]){acts[k].setLoop(THREE.LoopOnce);acts[k].clampWhenFinished=true;}});
+ const GA=GAIT[T.model];if(GA&&GA.runClip){const c=findClip(src.animations,GA.runClip);if(c)acts.gRun=mixer.clipAction(c);}
  acts.move.play();acts.move.time=rand(0,acts.move.getClip().duration);
  return {g,model,mats,mixer,acts,blob:bl};}
 function playAct(e,k,fade=.12){const a=e.acts[k];if(!a||e.cur===a)return;a.reset().play();if(e.cur)e.cur.crossFadeTo(a,fade,false);e.cur=a;}
@@ -804,7 +824,7 @@ function updateArc(){const on=state=='play'&&cur==2&&switchT<=0;arcLine.visible=
 /* ---------- combat ---------- */
 let score=0,kills=0,combo=0,comboT=0,bestCombo=0;
 const HITS={flyer:[[.85,.85]],bomber:[[.65,.72]],grunt:[[.9,.7],[1.85,.75]],brute:[[1.3,1.35],[2.6,1.55],[3.5,.95]],
- raptor:[[1,.6,0],[1.5,.45,1.1],[.9,.5,-1.1]],spider:[[.6,.8,0]],wasp:[[.5,.6,0]],trike:[[1.3,1.15,0],[1.4,1,1.6],[1.1,.9,-1.6]],bull:[[1.1,.8,0],[1.3,.6,1.2],[1,.7,-.8]],
+ raptor:[[1,.6,0],[1.5,.45,1.1],[.9,.5,-1.1]],spider:[[.8,1.05,0]],wasp:[[.5,.6,0]],trike:[[1.3,1.15,0],[1.4,1,1.6],[1.1,.9,-1.6]],bull:[[1.1,.8,0],[1.3,.6,1.2],[1,.7,-.8]],
  trex:[[3.3,2,0],[5.2,1.5,4.2],[2.6,1.6,-3.6],[1.2,1.1,0]]};
 function rayHit(o,d,maxD){let best=null,bd=maxD;
  for(const e of enemies){if(!e.alive)continue;const c=e.g.position;
@@ -1012,7 +1032,7 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
   else if(e.type=='raptor'){if(e.pk){const L=e.pk;L.t+=dt;const k=Math.min(1,L.t/L.dur);p.x=L.fx+(L.tx-L.fx)*k;p.z=L.fz+(L.tz-L.fz)*k;p.y=Math.sin(k*Math.PI)*L.h;
     if(k>=1){p.y=0;e.pk=null;playAct(e,'move',.15);if(Math.hypot(P.pos.x-p.x,P.pos.z-p.z)<e.r+1.6&&P.pos.y<1.6){hurtPlayer(14,p);P.vel.addScaledVector(to,8);}}}
    else{const a=Math.atan2(to.x,to.z)+(dist>9?e.flank*clamp((dist-9)/20,0,1):0);mv.set(Math.sin(a),0,Math.cos(a)).multiplyScalar(spd*(dist<6?-.4:1));
-    e.pcd=(e.pcd??rand(1,2.5))-dt;if(e.pcd<=0&&dist<13&&dist>3&&e.entering<=0&&state=='play'){const tx=P.pos.x+P.vel.x*.4,tz=P.pos.z+P.vel.z*.4;e.pk={t:0,dur:.6,fx:p.x,fz:p.z,tx,tz,h:2.4};playAct(e,'attack',.06);e.attackT=.6;SFX.screech(p);e.pcd=rand(2.2,3.4);}}}
+    e.pcd=(e.pcd??rand(1,2.5))-dt;if(e.pcd<=0&&dist<13&&dist>3&&e.entering<=0&&state=='play'){const tx=P.pos.x+P.vel.x*.4,tz=P.pos.z+P.vel.z*.4;e.pk={t:0,dur:.6,fx:p.x,fz:p.z,tx,tz,h:2.4};playAct(e,e.acts.leap?'leap':'attack',.06);e.attackT=.6;SFX.screech(p);e.pcd=rand(2.2,3.4);}}}
   else if(e.type=='spider'){mv.copy(to).multiplyScalar(spd);const side=new THREE.Vector3(-to.z,0,to.x);mv.addScaledVector(side,Math.sin(e.t*3+i)*2.5);
    if(dist<e.r+1.2&&e.attackT<=0&&(e.hitCd||0)<=0){playAct(e,'attack',.06);e.attackT=.5;e.swing=.2;}
    if(e.swing>0){e.swing-=dt;if(e.swing<=0&&dist<e.r+1.7){hurtPlayer(8,p);e.hitCd=.9;}}e.hitCd=(e.hitCd||0)-dt;if(e.attackT>0)mv.multiplyScalar(.2);}
@@ -1034,7 +1054,7 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
     if(e.slamT>0){e.slamT-=dt;if(e.slamT<=0){shockwave(p,26,18,24);SFX.slam(p);addShake(clamp(1.1-dist/50,.2,1),.4);}}}
    else if(e.st=='wind'){e.stT-=dt;e.cdir.lerp(to,Math.min(1,dt*3)).normalize();if(Math.random()<dt*10)smoke(new THREE.Vector3(p.x+rand(-1,1),.3,p.z+rand(-1,1)),{n:1,size:1,grow:2,life:.8,color:0xcdb08a,alpha:.4,rise:.3});
     if(e.stT<=0){e.st='charge';e.stT=boss?1.9:2.2;e.chId=(e.chId||0)+1;playAct(e,'run',.1);e.lp2=null;}}
-   else if(e.st=='charge'){e.stT-=dt;const cs=(boss?23:27)*DIFF.speed;mv.copy(e.cdir).multiplyScalar(cs);
+   else if(e.st=='charge'){e.stT-=dt;const cs=(boss?19:17)*DIFF.speed;mv.copy(e.cdir).multiplyScalar(cs);
     if(e.lp2&&e.stT<(boss?1.75:2.05)){const moved=Math.hypot(p.x-e.lp2.x,p.z-e.lp2.z);if(moved<cs*dt*.35){e.st='stun';e.stT=boss?2:2.6;playAct(e,'idle',.1);SFX.slam(p);addShake(clamp(1-dist/40,0,1)*.8,.4);flashBanner('STUNNED · DOUBLE DAMAGE','',1,true);smoke(new THREE.Vector3(p.x,1.5,p.z),{n:6,size:1.6,grow:3,life:1.2,color:0xc9a77c,alpha:.45,spread:1.2,rise:.6,vel:3});}}
     e.lp2={x:p.x,z:p.z};
     if(dist<e.r+1.5&&(e.hitCd||0)<=0&&P.pos.y<2){hurtPlayer(boss?36:30,p);P.vel.addScaledVector(e.cdir,26);P.vel.y+=7;P.onGround=false;e.hitCd=1.2;addShake(.8,.4);}e.hitCd=(e.hitCd||0)-dt;
@@ -1057,7 +1077,7 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
    e.hitCd=(e.hitCd||0)-dt;
    e.st=(e.st||0)-dt;if(e.st<=0&&mv.lengthSq()>1){SFX.stomp(p);e.st=e.charge>0?.24:.55;smoke(new THREE.Vector3(p.x+rand(-.6,.6),.3,p.z+rand(-.6,.6)),{n:2,size:1,grow:2,life:1,color:0xcdb08a,alpha:.4,spread:.3,rise:.3,vel:1});}}
   // return to locomotion after one-shot clips
-  if(e.cur!==e.acts.move&&e.cur!==e.acts.run&&e.hitT<=0&&e.attackT<=0&&!(e.type=='bomber'&&e.biting)&&!(typeof e.st=='string'&&e.st!='walk'))playAct(e,'move',.2);
+  if(e.cur!==e.acts.move&&e.cur!==e.acts.run&&e.cur!==e.acts.gRun&&e.hitT<=0&&e.attackT<=0&&!(e.type=='bomber'&&e.biting)&&!(typeof e.st=='string'&&e.st!='walk'))playAct(e,'move',.2);
   // separation
   for(const o of enemies){if(o===e||!o.alive||!!TYPES[o.type].fly!=!!TYPES[e.type].fly)continue;const dx=p.x-o.g.position.x,dz=p.z-o.g.position.z;const rr=e.r+o.r;const d2=dx*dx+dz*dz;
    if(d2<rr*rr&&d2>1e-4){const d=Math.sqrt(d2);mv.x+=dx/d*(rr-d)*8;mv.z+=dz/d*(rr-d)*8;}}
@@ -1069,13 +1089,19 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
   // turn smoothly toward the player
   const want=Math.atan2(to.x,to.z);let dr=want-e.g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));if(e.st=='charge'||e.st=='wind'&&false){e.g.rotation.y=Math.atan2(e.cdir.x,e.cdir.z);}else if(e.st=='stun'){}else e.g.rotation.y+=dr*Math.min(1,dt*(TYPES[e.type].turn||9));
   // animation speed follows ground speed so feet don't skate
-  const gs=Math.hypot(mv.x,mv.z);if(e.cur===e.acts.move)animRate*=clamp(gs/(TYPES[e.type].speed*.9),.4,1.8)*TYPES[e.type].moveSpeed;
+  const gs=Math.hypot(mv.x,mv.z);const TT=TYPES[e.type],GA=GAIT[TT.model];
+  if(GA&&(e.cur===e.acts.move||e.cur===e.acts.gRun)){const w=GA.walk?GA.walk*e.h:0,r=GA.run?GA.run*e.h:0;
+   if(e.acts.gRun&&!TT.noRun&&w&&(typeof e.st!='string'||e.st=='walk')){const want=gs>w*1.8?e.acts.gRun:e.acts.move;if(want!==e.cur&&(e.swapT=(e.swapT||0)-dt)<=0){want.reset().play();e.cur.crossFadeTo(want,.25,false);e.cur=want;e.swapT=.4;}}
+   const g=e.cur===e.acts.gRun||!w?r:w;animRate=gs<.3?.35:clamp(gs/g,.3,TT.maxRate||3.2);
+   if(TT.heavy&&gs>.5){const ct=e.cur.time,cd=e.cur.getClip().duration/2;const ph=Math.floor(ct/cd);if(e.stepPh!==undefined&&ph!==e.stepPh){const big=e.type=='trex';SFX.stomp(p);if(big){const dd=Math.hypot(P.pos.x-p.x,P.pos.z-p.z);addShake(clamp(.5-dd/90,0,.5),.15);}
+     smoke(new THREE.Vector3(p.x+rand(-.8,.8),.25,p.z+rand(-.8,.8)),{n:big?3:2,size:big?1.8:1,grow:big?3:2,life:1,color:0xcdb08a,alpha:.35,spread:.4,rise:.3,vel:1});}e.stepPh=ph;}}
+  else if(e.cur===e.acts.move)animRate*=clamp(gs/(TT.speed*.9),.4,1.8)*TT.moveSpeed;
   e.mixer.update(dt*animRate);e.blob.position.y=-p.y+.06;
   if(e.flinch>0){e.flinch=Math.max(0,e.flinch-dt*(e.type=='brute'?3:5));}e.model.rotation.x=-(e.flinch||0)*(e.type=='brute'?.25:.55);e.model.position.y=e.y0-(e.flinch||0)*.12;if(e.flinch>.35)spd*=.3;
   // hit flash
   if(e.flash>0){e.flash-=dt;const k=clamp(e.flash/.09,0,1);e.mats.forEach(m=>m.emissive&&m.emissive.setRGB(k*.9,k*.55,k*.4));if(e.flash<=0)e.mats.forEach(m=>m.emissive&&m.emissive.setRGB(0,0,0));}
  }}
-function updateBull(e,dt){const p=e.g.position;p.x+=e.dir.x*e.speed*dt;p.z+=e.dir.z*e.speed*dt;e.g.rotation.y=Math.atan2(e.dir.x,e.dir.z);e.mixer.update(dt*1.25);
+function updateBull(e,dt){const p=e.g.position;p.x+=e.dir.x*e.speed*dt;p.z+=e.dir.z*e.speed*dt;e.g.rotation.y=Math.atan2(e.dir.x,e.dir.z);e.mixer.update(dt*clamp(e.speed/(GAIT.bull.run*e.h),.5,3.5));
  const dx=P.pos.x-p.x,dz=P.pos.z-p.z;if(state=='play'&&(e.hitCd||0)<=0&&dx*dx+dz*dz<(e.r+.9)**2&&P.pos.y<1.8){hurtPlayer(24,p);P.vel.x+=e.dir.x*18;P.vel.z+=e.dir.z*18;P.vel.y+=6;P.onGround=false;e.hitCd=1;addShake(.6,.3);}
  e.hitCd=(e.hitCd||0)-dt;
  for(const o of enemies){if(o===e||!o.alive||o.passive||TYPES[o.type].fly||o.bullHit===e)continue;const ox=o.g.position.x-p.x,oz=o.g.position.z-p.z;if(ox*ox+oz*oz<(e.r+o.r)**2){o.bullHit=e;damageEnemy(o,45,e.dir.clone(),'ram',2.5);}}
@@ -1289,7 +1315,7 @@ function spawnDemo(){loadLevel(0);window.__noPause=true;begin();P.hp=1e9;P.yaw=0
  setTimeout(()=>{for(const e of enemies){e.alive=false;removeEnemyObj(e);}bossEl.hidden=true;const q=spawnEnemy('stormimp',0,{x:P.pos.x+10,z:P.pos.z-30});q.entering=0;},23000);
  setTimeout(()=>{openCards();},31000);}
 function oasisDemo(){loadLevel(3);window.__noPause=true;begin();P.hp=1e9;P.yaw=0;P.pitch=-.02;waveState='idle';
- const S=[['raptor',-7,-14],['trike',0,-22],['spider',6,-13],['wasp',3,-10],['bull',-3,-30]];for(const[t,x,z]of S){const e=spawnEnemy(t,0,{x:P.pos.x+x,z:P.pos.z+z});e.entering=99;e.speed=0;if(t=='bull'){e.dir=new THREE.Vector3(1,0,0);e.speed=0;e.passive=true;}if(t=='wasp')e.g.position.y=2.5;}
+ const S=[['raptor',-4,-9],['trike',1,-17],['spider',4.5,-8],['wasp',2,-6],['bull',-7,-22]];for(const[t,x,z]of S){const e=spawnEnemy(t,0,{x:P.pos.x+x,z:P.pos.z+z});e.entering=99;e.speed=0;if(t=='bull'){e.dir=new THREE.Vector3(1,0,0);e.speed=0;e.passive=true;}if(t=='wasp')e.g.position.y=2.5;}
  setTimeout(()=>{for(const e of enemies){e.alive=false;removeEnemyObj(e);}P.yaw=Math.PI;stampede();},9000);
  setTimeout(()=>{for(const e of enemies){e.alive=false;removeEnemyObj(e);}P.yaw=0;const q=spawnEnemy('trex',0,{x:P.pos.x,z:P.pos.z-34});q.entering=0;q.speed=1;q.cd=3;},17000);}
 function fxDemo(){loadLevel(1);window.__noPause=true;begin();P.hp=1e9;P.yaw=0;P.pitch=-.05;let n=0;
@@ -1304,7 +1330,14 @@ function fxDemo(){loadLevel(1);window.__noPause=true;begin();P.hp=1e9;P.yaw=0;P.
  begin(){window.__noPause=true;begin();},keys,setMouse(v){mouseDown=v},look(y,p){P.yaw=y;P.pitch=p},skipTo(i){waveState='rest';waveTimer=0;wave=i-1;},
  god(){P.hp=1e9},spawn:spawnEnemy,loadLevel,get level(){return LEVEL},
  sim(sec,ai){for(let t=0;t<sec;t+=1/60){if(state=='cards')pickCard(Math.floor(Math.random()*cardOpts.length));if(ai)ai();if(state=='play'||state=='over')step(1/60,1/60);}return {state,wave,kills,score,n:enemies.length,hp:Math.round(P.hp),ammo:WEAPONS.map(w=>w.ammo)};},
- get waveState(){return waveState},bbox(n){MODELS[n].scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(MODELS[n].scene,true);return [bb.min.toArray().map(v=>+v.toFixed(2)),bb.max.toArray().map(v=>+v.toFixed(2)),MODELS[n].animations.map(a=>a.name.split('|').pop())];},get PK(){return PK},pickCard,openCards,shockwave,meteor,get EVENT(){return EVENT},setEvent(v){EVENT=v},
+ get waveState(){return waveState},idle(){waveState='idle';},strideProbe(t,clipKey){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;e.g.rotation.y=0;const k=clipKey||'move';const act=e.acts[k]||e.mixer.clipAction(findClip(MODELS[TYPES[t].model].animations,k));e.mixer.stopAllAction();act.reset().play();
+ const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const dur=act.getClip().duration;const N=60;const tr=bones.map(()=>[]);const v=new THREE.Vector3();
+ for(let f=0;f<=N;f++){e.mixer.setTime(dur*f/N);e.g.updateMatrixWorld(true);bones.forEach((b,i)=>{b.getWorldPosition(v);tr[i].push([v.y,v.z]);});}
+ const res=[];bones.forEach((b,i)=>{const ys=tr[i].map(a=>a[0]);const mn=Math.min(...ys);if(mn>.25)return;let sum=0,c=0;for(let f=1;f<=N;f++){if(tr[i][f][0]<mn+.06&&tr[i][f-1][0]<mn+.06){sum+=-(tr[i][f][1]-tr[i][f-1][1])/(dur/N);c++;}}if(c>2)res.push([b.name,+mn.toFixed(2),+(sum/c).toFixed(2),c]);});
+ e.alive=false;removeEnemyObj(e);return JSON.stringify({dur:+dur.toFixed(2),feet:res});},
+ animProbe(t){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const out=[];const b0=bones.map(b=>b.quaternion.clone());
+ for(let f=0;f<10;f++){e.mixer.update(.06);e.g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(e.model,true);let ch=0;bones.forEach((b,k)=>ch=Math.max(ch,1-Math.abs(b.quaternion.dot(b0[k]))));out.push([+bb.min.y.toFixed(2),+bb.max.y.toFixed(2),+ch.toFixed(3)]);}
+ const r={clip:e.cur&&e.cur.getClip().name,dur:e.cur&&+e.cur.getClip().duration.toFixed(2),bones:bones.length,y0:+e.model.position.y.toFixed(2),frames:out};e.alive=false;removeEnemyObj(e);return JSON.stringify(r);},bbox(n){MODELS[n].scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(MODELS[n].scene,true);return [bb.min.toArray().map(v=>+v.toFixed(2)),bb.max.toArray().map(v=>+v.toFixed(2)),MODELS[n].animations.map(a=>a.name.split('|').pop())];},get PK(){return PK},pickCard,openCards,shockwave,meteor,get EVENT(){return EVENT},setEvent(v){EVENT=v},
  fxTest(){const p=new THREE.Vector3(P.pos.x,1,P.pos.z-12);explode(p,7.5,0,false,null);smoke(new THREE.Vector3(P.pos.x+4,1.5,P.pos.z-8),{n:4,size:2,grow:3,life:3,color:0xa89580,alpha:.32});},pickups,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs.length,objs:scene.children.length}),get shots(){return shots},get hits(){return hits},selectWeapon};
 }
 </script>
