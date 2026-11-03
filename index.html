@@ -125,6 +125,7 @@ button.card .lv{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.1
       <kbd>Barrels</kbd><span>Red drums explode when shot</span>
       <kbd>Every 2 waves</kbd><span>Pick 1 of 3 upgrades</span>
       <kbd>Jump pads</kbd><span>Step on one to fly across the arena</span>
+      <kbd>Cars &amp; crates</kbd><span>Jump onto them for high ground</span>
     </div>
     <div id="diff" class="pick" role="group" aria-label="Difficulty"><button data-d="easy" aria-pressed="false">EASY</button><button data-d="normal" aria-pressed="true">NORMAL</button><button data-d="hard" aria-pressed="false">HARD</button></div>
     <button id="go" disabled>LOADING</button>
@@ -399,8 +400,9 @@ function addShake(a,t=.25){shake.amp=Math.max(shake.amp,a);shake.t=Math.max(shak
 let timeScale=1,hitStop=0;
 function doHitStop(s){hitStop=Math.max(hitStop,s);}
 
+function floorAt(x,z,y){let f=0;for(const c of colliders){if(!c.box||c.dead||!c.h||c.h>4||y<c.h-.45)continue;const[x0,x1,z0,z1]=c.box;if(x>x0-.25&&x<x1+.25&&z>z0-.25&&z<z1+.25&&c.h>f)f=c.h;}return f;}
 function collideCircle(pos,r){
- for(const c of colliders){if(c.dead||(c.h&&pos.y>c.h))continue;if(c.box){const[x0,x1,z0,z1]=c.box;const cx=clamp(pos.x,x0,x1),cz=clamp(pos.z,z0,z1);const dx=pos.x-cx,dz=pos.z-cz;const d2=dx*dx+dz*dz;
+ for(const c of colliders){if(c.dead||(c.h&&pos.y>=c.h-.05))continue;if(c.box){const[x0,x1,z0,z1]=c.box;const cx=clamp(pos.x,x0,x1),cz=clamp(pos.z,z0,z1);const dx=pos.x-cx,dz=pos.z-cz;const d2=dx*dx+dz*dz;
    if(d2<r*r){if(d2>1e-6){const d=Math.sqrt(d2);pos.x=cx+dx/d*r;pos.z=cz+dz/d*r;}else{ // inside: push out shortest
      const o=[pos.x-x0+r,x1-pos.x+r,pos.z-z0+r,z1-pos.z+r];const m=Math.min(...o);if(m==o[0])pos.x=x0-r;else if(m==o[1])pos.x=x1+r;else if(m==o[2])pos.z=z0-r;else pos.z=z1+r;}}}
   else{const dx=pos.x-c.x,dz=pos.z-c.z;const rr=c.r+r;const d2=dx*dx+dz*dz;if(d2<rr*rr&&d2>1e-6){const d=Math.sqrt(d2);pos.x=c.x+dx/d*rr;pos.z=c.z+dz/d*rr;}}}
@@ -480,7 +482,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='38';const VQ='?v='+BUILD;
+const BUILD='40';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -697,7 +699,7 @@ function buildLevel5(){ // the Neon District: two streets crossing under the rai
  [[W+.6,W+.6,Math.PI*1.25],[-W-.6,-W-.6,Math.PI*.25],[W+.6,-W-.6,-Math.PI*.25],[-W-.6,W+.6,Math.PI*.75]].forEach(([x,z,r])=>placeProp('q_TrafficLight',x,z,5.2,{rot:r,col:.3}));
  // wrecked and parked cars
  const CARS=['k_taxi','k_police','k_sedan','k_suv','k_van','k_truck','k_ambulance','k_garbage-truck'];let ci=0;
- const car=(x,z,rot,col)=>{const o=placeProp(CARS[ci++%CARS.length],x,z,1.55,{rot,col});if(o)o.scale.z*=1.4;return o;};
+ const car=(x,z,rot,col)=>{const o=placeProp(CARS[ci++%CARS.length],x,z,1.55,{rot,col});if(o){o.scale.z*=1.4;const c=o.userData.col;if(c&&c.box){o.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(o);c.box=[bb.min.x,bb.max.x,bb.min.z,bb.max.z];c.h=+(bb.max.y-.1).toFixed(2);}}return o;};
  for(let v=-96;v<=96;v+=16){if(Math.abs(v)<26)continue;if(Math.random()<.7)car(rand(9.6,10.4)*(v%32?1:-1),v,0,'box');if(Math.random()<.6)car(v,rand(9.6,10.4)*(v%32?-1:1),Math.PI/2,'box');}
  car(4,-3,.7,2.3);car(-6,5,2.2,2.3);car(-3,-30,.3,2.2);car(28,2,1.9,2.2);
  // clutter: cones, bins, barriers, fuel drums
@@ -833,6 +835,11 @@ function organic(m,freq,amt){m.flatShading=false;m.roughness=Math.max(m.roughnes
    .replace('#include <color_fragment>','#include <color_fragment>\n float nB=fbm3(vOP*uF);float nS=fbm3(vOP*uF*4.3+7.1);diffuseColor.rgb*=clamp(1.-uA*(1.1*nB+.8*nS-.95),.35,1.3);')
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n roughnessFactor=clamp(roughnessFactor*(.8+.4*nS),0.,1.);');};
  m.customProgramCacheKey=()=>'org'+freq.toFixed(3)+'_'+amt;m.needsUpdate=true;}
+// faint cold rim light so silhouettes read at night without lifting the darkness
+function addRim(m){m.userData.rimU={value:0};const prev=m.onBeforeCompile,pk=m.customProgramCacheKey;
+ m.onBeforeCompile=function(sh,r){if(prev&&prev!==THREE.Material.prototype.onBeforeCompile)prev.call(this,sh,r);sh.uniforms.uRim=m.userData.rimU;
+  sh.fragmentShader='uniform float uRim;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n {float fr=1.-clamp(abs(dot(normalize(normal),normalize(vViewPosition))),0.,1.);totalEmissiveRadiance+=vec3(.42,.55,1.)*pow(fr,2.2)*uRim+vec3(.07,.08,.1)*uRim;}');};
+ m.customProgramCacheKey=function(){return (pk?pk.call(this):'')+'_rim';};m.needsUpdate=true;}
 const prepped=new Set();
 function prepCreature(name){if(prepped.has(name)||!MODELS[name])return;prepped.add(name);
  // smooth the faceted low-poly shading: weld vertices, then rebuild normals so bodies read as round, not folded paper
@@ -852,7 +859,7 @@ function buildEnemy(type){const T=TYPES[type];const src=MODELS[T.model];const g=
  // fit model height
  if(!T.scale){src.scene.updateMatrixWorld(true);let bb=new THREE.Box3().setFromObject(src.scene,true);if(!isFinite(bb.max.y))bb=new THREE.Box3().setFromObject(src.scene);T.scale=T.h/(bb.max.y-bb.min.y);T.y0=-bb.min.y*T.scale;}
  model.scale.setScalar(T.scale);model.position.y=T.y0;g.add(model);
- const mats=[];const org=ORGANIC[T.model];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();if(T.robot){o.material.metalness=.55;o.material.roughness=.38;}if(org){o.geometry.computeBoundingBox();const sz=o.geometry.boundingBox.getSize(new THREE.Vector3());organic(o.material,org[0]/Math.max(sz.x,sz.y,sz.z,1e-3)*2.2,org[1]);}mats.push(o.material);}});
+ const mats=[];const org=ORGANIC[T.model];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();if(T.robot){o.material.metalness=.55;o.material.roughness=.38;}if(org){o.geometry.computeBoundingBox();const sz=o.geometry.boundingBox.getSize(new THREE.Vector3());organic(o.material,org[0]/Math.max(sz.x,sz.y,sz.z,1e-3)*2.2,org[1]);}addRim(o.material);mats.push(o.material);}});
  const bl=blob(T.r*2.6);g.add(bl);
  const mixer=new THREE.AnimationMixer(model);const acts={};
  for(const[k,n]of Object.entries(T.anims)){const c=findClip(src.animations,n);if(c)acts[k]=mixer.clipAction(c);}
@@ -872,7 +879,7 @@ function spawnEnemy(type,gate,at){let warlord=false;if(type=='boss'){type='brute
   e.mats.forEach(m=>{m.color.lerp(new THREE.Color(0x9a2a1a),.45);});}
  if(T.boss){e.boss=true;e.blob.scale.set(T.r*2.8,1,T.r*2.8);}
  if(e.boss){const nm=T.name||'THE WARLORD';flashBanner(nm,'',2.2);$('bossname').textContent=nm;bossEl.hidden=false;bossE=e;}
- e.y0=e.model.position.y;
+ e.y0=e.model.position.y;{const rv=LEVELS[LEVEL].night?(T.robot?.9:1.15):0;e.mats.forEach(m=>{if(m.userData.rimU)m.userData.rimU.value=rv;});}
  if(type=='shield'){const sh=new THREE.Group();const plate=new THREE.Mesh(SHG[0],shieldMat);plate.castShadow=true;
   const rim=new THREE.Mesh(SHG[1],shieldRim);rim.position.y=1.03;const rim2=rim.clone();rim2.position.y=-1.03;
   const boss_=new THREE.Mesh(SHG[2],shieldRim);boss_.rotation.x=Math.PI/2;boss_.position.z=.1;sh.add(plate,rim,rim2,boss_);sh.position.set(0,1.3,.85);e.g.add(sh);e.shieldMesh=sh;}
@@ -1416,7 +1423,7 @@ function step(dt,rdt){
   $('dashbar').style.transform='scaleX('+clamp(1-P.dashCd/dashCdMax(),0,1)+')';if(P.inv>0)P.inv-=dt;
   if(P.dashT>0&&pk('ram'))for(const e of enemies){if(!e.alive||e.rammed===P.dashId)continue;const dx=e.g.position.x-P.pos.x,dz=e.g.position.z-P.pos.z;if(dx*dx+dz*dz<(e.r+1.3)**2&&Math.abs(e.g.position.y-P.pos.y)<2.5){e.rammed=P.dashId;damageEnemy(e,70,new THREE.Vector3(dx,0,dz).normalize(),'ram',2);addShake(.4,.15);SFX.hit();}}
   P.vel.y-=26*dt;P.pos.addScaledVector(P.vel,dt);
-  if(P.pos.y<=0){if(!P.onGround&&P.vel.y<-8){SFX.land();kick.p-=.02;}P.pos.y=0;P.vel.y=0;P.onGround=true;}
+  const fl=floorAt(P.pos.x,P.pos.z,P.pos.y);if(P.pos.y<=fl){if(!P.onGround&&P.vel.y<-8){SFX.land();kick.p-=.02;}P.pos.y=fl;P.vel.y=0;P.onGround=true;}else if(P.pos.y>fl+.02&&P.vel.y<0)P.onGround=false;
   collideCircle(P.pos,.6);
   const moving=wish.lengthSq()>0&&P.onGround;const pb=P.bob;P.bob+=dt*(moving?11:0);if(Math.floor(pb/Math.PI)!=Math.floor(P.bob/Math.PI))SFX.step();
   // firing
@@ -1474,7 +1481,7 @@ function fxDemo(){loadLevel(1);window.__noPause=true;begin();P.hp=1e9;P.yaw=0;P.
  begin(){window.__noPause=true;begin();},keys,setMouse(v){mouseDown=v},look(y,p){P.yaw=y;P.pitch=p},skipTo(i){waveState='rest';waveTimer=0;wave=i-1;},
  god(){P.hp=1e9},spawn:spawnEnemy,loadLevel,get level(){return LEVEL},
  sim(sec,ai){for(let t=0;t<sec;t+=1/60){if(state=='cards')pickCard(Math.floor(Math.random()*cardOpts.length));if(ai)ai();if(state=='play'||state=='over')step(1/60,1/60);}return {state,wave,kills,score,n:enemies.length,hp:Math.round(P.hp),ammo:WEAPONS.map(w=>w.ammo)};},
- get waveState(){return waveState},dbgLight(){return JSON.stringify({hemi:hemi.intensity,sun:sun.intensity,envNight:scene.environment===NIGHT.env,envDay:scene.environment===DAY.env,exp:renderer.toneMappingExposure,lights:(()=>{let n=0;scene.traverse(o=>{if(o.isLight)n++;});return n;})(),rain:RAIN.on,flash:RAIN.flash});},idle(){waveState='idle';},strideProbe(t,clipKey){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;e.g.rotation.y=0;const k=clipKey||'move';const act=e.acts[k]||e.mixer.clipAction(findClip(MODELS[TYPES[t].model].animations,k));e.mixer.stopAllAction();act.reset().play();
+ get waveState(){return waveState},get colliders(){return colliders},dbgLight(){return JSON.stringify({hemi:hemi.intensity,sun:sun.intensity,envNight:scene.environment===NIGHT.env,envDay:scene.environment===DAY.env,exp:renderer.toneMappingExposure,lights:(()=>{let n=0;scene.traverse(o=>{if(o.isLight)n++;});return n;})(),rain:RAIN.on,flash:RAIN.flash});},idle(){waveState='idle';},strideProbe(t,clipKey){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;e.g.rotation.y=0;const k=clipKey||'move';const act=e.acts[k]||e.mixer.clipAction(findClip(MODELS[TYPES[t].model].animations,k));e.mixer.stopAllAction();act.reset().play();
  const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const dur=act.getClip().duration;const N=60;const tr=bones.map(()=>[]);const v=new THREE.Vector3();
  for(let f=0;f<=N;f++){e.mixer.setTime(dur*f/N);e.g.updateMatrixWorld(true);bones.forEach((b,i)=>{b.getWorldPosition(v);tr[i].push([v.y,v.z]);});}
  const res=[];bones.forEach((b,i)=>{const ys=tr[i].map(a=>a[0]);const mn=Math.min(...ys);if(mn>.25)return;let sum=0,c=0;for(let f=1;f<=N;f++){if(tr[i][f][0]<mn+.06&&tr[i][f-1][0]<mn+.06){sum+=-(tr[i][f][1]-tr[i][f-1][1])/(dur/N);c++;}}if(c>2)res.push([b.name,+mn.toFixed(2),+(sum/c).toFixed(2),c]);});
