@@ -128,6 +128,7 @@ button.card .lv{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.1
     <div id="diff" class="pick" role="group" aria-label="Difficulty"><button data-d="easy" aria-pressed="false">EASY</button><button data-d="normal" aria-pressed="true">NORMAL</button><button data-d="hard" aria-pressed="false">HARD</button></div>
     <button id="go" disabled>LOADING</button>
     <div class="row"><label for="sens">Mouse</label><input id="sens" type="range" min="0.3" max="3" step="0.1" value="1"><label><input type="checkbox" id="smooth" checked> Smooth aim</label><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"></div>
+    <p class="note">Build <span id="buildv"></span></p>
     <p class="note credits">Textures, sky &amp; props: Poly Haven (CC0) &middot; Monsters: Quaternius (CC0) &middot; Sounds: Freedoom (BSD), Kenney (CC0) &middot; Music: &ldquo;Battle Theme A&rdquo; by cynicmusic (CC0)</p>
     <p class="note" id="touchnote" hidden>Needs a keyboard and mouse. Open it on a computer.</p>
   </div>
@@ -478,6 +479,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
+const BUILD='38';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -485,14 +487,14 @@ const Q_FILES=['PalmTree_1','PalmTree_2','PalmTree_3','PalmTree_4','Cactus_1','C
 const PH_FILES=['Barrel_01','ammo_box','boulder_01','cannon_01','concrete_road_barrier','metal_jerrycan','namaqualand_boulder_02','namaqualand_boulder_05','old_military_crate','sand_rocks_small_01','wooden_crate_01','wooden_crate_02','wooden_military_crate'];
 LD.n+=MODEL_FILES.length+PH_FILES.length+Q_FILES.length+CITY_FILES.length+SFX_FILES.length+1;
 const ready=Promise.all([
- ...MODEL_FILES.map(n=>fetch('assets/models/'+n+'.json').then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('model',n,err);prog();})),
- ...PH_FILES.map(n=>fetch('assets/ph/'+n+'.json').then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
- ...CITY_FILES.map(n=>fetch('assets/city/'+n+'.json').then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
- ...Q_FILES.map(n=>fetch('assets/q/'+n+'.json').then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
+ ...MODEL_FILES.map(n=>fetch('assets/models/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('model',n,err);prog();})),
+ ...PH_FILES.map(n=>fetch('assets/ph/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
+ ...CITY_FILES.map(n=>fetch('assets/city/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
+ ...Q_FILES.map(n=>fetch('assets/q/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{MODELS[n]=g;prog();}).catch(err=>{console.error('prop',n,err);prog();})),
  ...SFX_FILES.map(n=>fetch('assets/sfx/'+n+'.mp3').then(r=>r.arrayBuffer()).then(d=>AC.decodeAudioData(d)).then(b=>{BUF[n]=b;prog();}).catch(()=>prog())),
  fetch('assets/music.mp3').then(r=>r.arrayBuffer()).then(d=>AC.decodeAudioData(d)).then(b=>{BUF.music=b;prog();}).catch(()=>prog())
 ]).then(()=>{for(const k in MODELS){const rm=[];MODELS[k].scene.traverse(o=>{if(o.isLight)rm.push(o);});rm.forEach(o=>o.parent.remove(o));}
- loadLevel(startLevel());LD.ready=true;updLoad();});
+ $('buildv').textContent=BUILD;loadLevel(startLevel());LD.ready=true;updLoad();});
 
 function placeProp(name,x,z,height,opts={}){const src=MODELS[name];if(!src)return;const o=src.scene.clone(true);
  const bb=new THREE.Box3().setFromObject(src.scene);const sz=bb.getSize(new THREE.Vector3());const k=height/sz.y;o.scale.setScalar(k);o.position.set(x,-bb.min.y*k+(opts.y||0),z);
