@@ -10,4 +10,5 @@ Keyboard and mouse required. WASD to move, mouse to aim and fire, Space to jump,
 - Textures, sky and props: Poly Haven (CC0)
 - Monsters, dinosaurs and oasis plants: Quaternius (CC0)
 - Sounds: Freedoom (BSD), Kenney (CC0)
-- Music: "Battle Theme A" by cynicmusic (CC0)
+- Music: "Battle Theme A" by cynicmusic (CC0); Royalty Free Music Pack by Efface Studios (CC0)
+- Vehicles: Kenney Car Kit (CC0)

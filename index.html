@@ -131,7 +131,7 @@ button.card .lv{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.1
     <button id="go" disabled>LOADING</button>
     <div class="row"><label for="sens">Mouse</label><input id="sens" type="range" min="0.3" max="3" step="0.1" value="1"><label><input type="checkbox" id="smooth" checked> Smooth aim</label><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"></div>
     <p class="note">Build <span id="buildv"></span></p>
-    <p class="note credits">Textures, sky &amp; props: Poly Haven (CC0) &middot; Monsters: Quaternius (CC0) &middot; Sounds: Freedoom (BSD), Kenney (CC0) &middot; Music: &ldquo;Battle Theme A&rdquo; by cynicmusic (CC0)</p>
+    <p class="note credits">Textures, sky &amp; props: Poly Haven (CC0) &middot; Monsters: Quaternius (CC0) &middot; Sounds: Freedoom (BSD), Kenney (CC0) &middot; Music: &ldquo;Battle Theme A&rdquo; by cynicmusic, Royalty Free Music Pack by Efface Studios (both CC0) &middot; Vehicles: Kenney (CC0)</p>
     <p class="note" id="touchnote" hidden>Needs a keyboard and mouse. Open it on a computer.</p>
   </div>
 </div>
@@ -308,8 +308,16 @@ const SFX={
  flyerDive(pos){play('demon_sight',{pos,vol:.9,rate:1.9,gap:.3});}
 };
 /* music: CC0 battle track, muffled between waves and opened up during fights */
-const MUS={on:false,target:0,cur:0};
-function musicStart(){if(MUS.on||!BUF.music)return;const s=AC.createBufferSource();s.buffer=BUF.music;s.loop=true;s.connect(musBus);s.start();MUS.on=true;}
+const MUS={on:false,target:0,cur:0,name:null,src:null,g:null,want:'music'};
+// one track per arena plus a boss track; loaded on demand and cross-faded
+const MTRACK={};
+function loadTrack(n){if(n=='music'||MTRACK[n]||MTRACK[n+'_p'])return;MTRACK[n+'_p']=1;fetch('assets/music/'+n+'.mp3'+VQ).then(r=>r.arrayBuffer()).then(d=>AC.decodeAudioData(d)).then(b=>{MTRACK[n]=b;if(MUS.want==n)musicPlay(n);}).catch(()=>{});}
+function musicPlay(n){MUS.want=n;if(!MUS.on||MUS.name==n)return;const b=n=='music'?BUF.music:MTRACK[n];if(!b){loadTrack(n);return;}const t=AC.currentTime;
+ const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+1.5);g.connect(musBus);const sr=AC.createBufferSource();sr.buffer=b;sr.loop=true;sr.connect(g);sr.start();
+ if(MUS.src){const os=MUS.src,og=MUS.g;og.gain.cancelScheduledValues(t);og.gain.setValueAtTime(og.gain.value,t);og.gain.linearRampToValueAtTime(0,t+1.5);try{os.stop(t+1.6);}catch(_){}}
+ MUS.src=sr;MUS.g=g;MUS.name=n;}
+const levelTrack=()=>LEVELS[LEVEL].music||'music';
+function musicStart(){if(MUS.on||!BUF.music)return;MUS.on=true;musicPlay(MUS.want||'music');}
 function musicTick(){if(!MUS.on)return;const t=AC.currentTime;const I=MUS.target;
  if(Math.abs(I-MUS.cur)>.01){MUS.cur=I;musBus.gain.setTargetAtTime(I<=0?0:.16+.24*I,t,.6);musFilter.frequency.setTargetAtTime(I<.3?700:2000+16000*I,t,.8);}}
 
@@ -482,7 +490,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='40';const VQ='?v='+BUILD;
+const BUILD='41';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -719,22 +727,22 @@ const LEVELS=[
   tag:['THEY HEARD YOU','SPREAD OUT','THE BROOD','SHIELD WALL','EIGHT LEGS','DON\'T STOP MOVING','THE BROOD QUEEN'],
   waves:[[['bomber',14,.8]],[['grunt',6,1.5],['bomber',14,.7]],[['bomber',24,.5],['splitter',3,3.5]],[['shield',4,2.5],['grunt',6,1.5],['bomber',12,1]],[['spider',30,.35],['bomber',12,.9]],
    [['bomber',36,.32],['grunt',6,1.8],['splitter',3,4],['shield',2,5],['spider',16,.6]],[['queen',1,1],['bomber',18,1.3],['spider',14,1.2],['grunt',3,7]]]},
- {name:'CARAVAN GRAVEYARD',desc:'An open plain with no walls. They come from every direction, from the sky, inside the sandstorms, and sometimes as a stampede.',build:buildLevel2,ground:'sand',start:[0,32,0],
+ {name:'CARAVAN GRAVEYARD',music:'caravan',desc:'An open plain with no walls. They come from every direction, from the sky, inside the sandstorms, and sometimes as a stampede.',build:buildLevel2,ground:'sand',start:[0,32,0],
   light:{sun:0xffc690,int:2.15,exp:.97,fog:[0xd6b38a,140,620]},storm:[2,5],events:['bounty','frenzy','meteors','stampede'],
   tag:['OPEN GROUND','WINGS OVERHEAD','LASERS IN THE STORM','THE CALLERS','THE SWARM','SANDSTORM','THE STORM CALLER'],
   waves:[[['bomber',20,.6]],[['grunt',8,1.3],['flyer',6,2]],[['bomber',30,.4],['sniper',3,4]],[['brute',2,6],['summoner',2,4],['grunt',6,1.5]],[['wasp',24,.35],['flyer',6,1.5],['raptor',6,2]],
    [['flyer',8,1.2],['bomber',30,.38],['sniper',3,5],['shield',3,4],['spider',16,.7]],[['stormimp',1,1],['flyer',5,3.5],['bomber',18,1.1],['wasp',12,1.5]]]},
- {name:'THE SUPPLY DEPOT',desc:'Close quarters among crates and fuel drums. One shot can clear a lane, or end you.',build:buildLevel3,ground:'sand',start:[0,-14,0],
+ {name:'THE SUPPLY DEPOT',music:'depot',desc:'Close quarters among crates and fuel drums. One shot can clear a lane, or end you.',build:buildLevel3,ground:'sand',start:[0,-14,0],
   light:{sun:0xfff6e6,int:2.7,exp:1.0,fog:[0xdcc6a6,120,520]},
   tag:['LOCK AND LOAD','INCOMING FROM ABOVE','LIGHT THE FUEL','THE BIG ONES','CRAWLERS','HOLD THE DEPOT','THE WARLORD'],
   waves:[[['grunt',8,1.2],['bomber',12,.8],['shield',2,4]],[['flyer',10,1.1],['sniper',3,3],['wasp',10,.6]],[['bomber',36,.32],['splitter',4,3],['summoner',1,1]],[['brute',3,5],['shield',4,3],['trike',1,1],['flyer',4,2]],[['spider',36,.3],['raptor',6,2]],
    [['grunt',10,1.1],['bomber',24,.4],['sniper',3,4],['summoner',2,5],['spider',14,.7]],[['boss',1,1],['brute',1,12],['bomber',22,.65],['flyer',5,3],['raptor',6,3]]]},
- {name:'THE LOST OASIS',desc:'Something old still lives by the water. Raptors in packs, charging horns, a stampede, and the Tyrant. Ride the jump pads over the pond.',build:buildLevel4,ground:'rocks',start:[0,40,0],
+ {name:'THE LOST OASIS',music:'oasis',desc:'Something old still lives by the water. Raptors in packs, charging horns, a stampede, and the Tyrant. Ride the jump pads over the pond.',build:buildLevel4,ground:'rocks',start:[0,40,0],
   light:{sun:0xfff0dc,int:2.2,exp:.92,fog:[0xd8c0a0,120,540]},events:['bounty','frenzy','meteors','stampede'],force:{3:'stampede'},
   tag:['CLEVER GIRLS','THE SWARM','HORNS','STAMPEDE','THE PACK','EVERYTHING AT ONCE','THE TYRANT'],
   waves:[[['raptor',6,1.2],['spider',12,.6]],[['wasp',16,.4],['spider',16,.5],['grunt',4,2]],[['trike',2,6],['raptor',9,1],['bomber',16,.6]],[['spider',24,.4],['wasp',12,.8],['sniper',2,5]],
    [['trike',3,5],['summoner',2,4],['raptor',12,.9]],[['spider',36,.25],['bomber',30,.35],['raptor',9,1.2],['wasp',16,.6],['shield',2,6]],[['trex',1,1],['raptor',6,4],['spider',18,1]]]},
- {name:'NEON DISTRICT',desc:'Rain, neon and two streets crossing in the dark. Snipers on the rooftops, robots in the alleys, and the Enforcer at the end of the night.',build:buildLevel5,ground:'asphalt',night:1,start:[0,30,0],
+ {name:'NEON DISTRICT',music:'neon',desc:'Rain, neon and two streets crossing in the dark. Snipers on the rooftops, robots in the alleys, and the Enforcer at the end of the night.',build:buildLevel5,ground:'asphalt',night:1,start:[0,30,0],
   streets:1,light:{sun:0x8fa4d8,int:.32,exp:.95,fog:[0x0b0f1a,30,200],hemi:[0x6f80b0,0x140f0c,.28]},events:['bounty','frenzy'],
   tag:['NIGHT SHIFT','DRONES','ROOFTOPS','GANG WAR','CRAWLERS','RIOT','THE ENFORCER'],
   waves:[[['grunt',8,1.2],['bomber',14,.8]],[['drone',8,1],['gunbot',4,2.5]],[['sniper',4,2.5],['spider',20,.5],['gunbot',4,3]],[['gunbot',8,1.4],['shield',3,4],['bomber',20,.6]],
@@ -753,7 +761,7 @@ function loadLevel(i){LEVEL=i;const D=LEVELS[i];
  colliders.length=0;barrels.length=0;pads.length=0;decals.forEach(d=>{d.userData.t=0;d.material.opacity=0;});scorches.forEach(c=>{c.userData.t=0;c.material.opacity=0;});
  BOUNDS={x0:-95,x1:95,z0:-95,z1:95};D.build();WAVES=D.waves;
  window.__ground.material=D.ground=='rocks'?groundMat2:D.ground=='asphalt'?asphaltMat:groundMat;
- applyNight(!!D.night);if(D.night){NIGHT.hemi=D.light.hemi[2];hemi.color.set(D.light.hemi[0]);hemi.groundColor.set(D.light.hemi[1]);hemi.intensity=NIGHT.hemi;}
+ applyNight(!!D.night);loadTrack(D.music||'music');loadTrack('boss');musicPlay(D.music||'music');if(D.night){NIGHT.hemi=D.light.hemi[2];hemi.color.set(D.light.hemi[0]);hemi.groundColor.set(D.light.hemi[1]);hemi.intensity=NIGHT.hemi;}
  STORM.on=false;STORM.k=0;STORM.base=D.light.fog;sun.color.set(D.light.sun);sun.intensity=D.light.int;renderer.toneMappingExposure=D.light.exp;scene.fog.color.set(D.light.fog[0]);scene.fog.near=D.light.fog[1];scene.fog.far=D.light.fog[2];
  Object.assign(sun.shadow.camera,{left:-SH,right:SH,top:SH,bottom:-SH,near:10,far:420});sun.shadow.camera.updateProjectionMatrix();
  P.pos.set(D.start[0],0,D.start[1]);P.yaw=D.start[2];P.pitch=0;followSun(true);
@@ -1032,7 +1040,7 @@ function frontGate(){let best=0,bd=-9;const fx=-Math.sin(P.yaw),fz=-Math.cos(P.y
 function startWave(i){wave=i;queue=[];snap={score,kills,ammo:WEAPONS.map(w=>w.ammo),ar:P.ar,pk:{...PK}};rollEvent(i);
  WAVES[i].forEach(([type,n,gap])=>{const big=type=='boss'||TYPES[type].heavy||type=='summoner'||type=='shield';n=Math.max(1,Math.round(n*(big?Math.min(1,DIFF.count):DIFF.count)));gap/=Math.sqrt(DIFF.count);
   const pk_=PACK[type]||1;let gate=0;for(let k=0;k<n;k++){if(k%pk_==0)gate=i<2&&LEVEL==0?frontGate():Math.floor(rand(0,SPAWNS.length));const at=Math.floor(k/pk_)*gap*pk_+(k%pk_)*.18+rand(0,gap*.3);queue.push({type,at,gate});}});
- queue.sort((a,b)=>a.at-b.at);spawnT=0;waveState='fight';STORM.on=!!(LEVELS[LEVEL].storm||[]).includes(i);SFX.waveStart();MUS.target=.55+i*.09;
+ queue.sort((a,b)=>a.at-b.at);spawnT=0;waveState='fight';STORM.on=!!(LEVELS[LEVEL].storm||[]).includes(i);SFX.waveStart();musicPlay(i==WAVES.length-1?'boss':levelTrack());MUS.target=.55+i*.09;
  flashBanner('WAVE '+(i+1),(LEVELS[LEVEL].tag[i]||'')+(EVENT?' · '+EVENTS[EVENT]:''),2.2);updateHud();}
 function updateWaves(dt){
  if(waveState=='fight'){spawnT+=dt;let alive=enemies.filter(e=>e.alive&&!e.passive).length;while(queue.length&&queue[0].at<=spawnT&&alive<MAXALIVE){const q=queue.shift();spawnEnemy(q.type,q.gate);alive++;}
@@ -1349,12 +1357,12 @@ let state='menu';
 function resetBarrels(){for(const b of barrels){if(!b.alive){b.alive=true;b.hp=20;b.o.visible=true;if(b.o.userData.col)b.o.userData.col.dead=false;}}}
 function clearField(){cardsDue=false;$('aimwarn').hidden=true;STORM.on=false;EVENT=null;bountyE=null;$('cards').hidden=true;shocks.forEach(s=>{scene.remove(s.m);s.m.material.dispose();});shocks.length=0;meteors.forEach(q=>scene.remove(q.m));meteors.length=0;bossEl.hidden=true;bossE=null;resetBarrels();enemies.forEach(removeEnemyObj);enemies.length=0;corpses.forEach(c=>removeEnemyObj(c.e));corpses.length=0;queue=[];
  eShots.forEach(s=>scene.remove(s.m));eShots.length=0;rockets.forEach(r=>scene.remove(r.m));rockets.length=0;pickups.forEach(k=>scene.remove(k.g));pickups.length=0;}
-function resetGame(){clearField();eShots.forEach(s=>scene.remove(s.m));eShots.length=0;rockets.forEach(r=>scene.remove(r.m));rockets.length=0;
+function resetGame(){clearField();musicPlay(levelTrack());eShots.forEach(s=>scene.remove(s.m));eShots.length=0;rockets.forEach(r=>scene.remove(r.m));rockets.length=0;
  pickups.forEach(k=>scene.remove(k.g));pickups.length=0;
  {const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:0,alive:true,yaw:D.start[2],pitch:0});P.pos.set(D.start[0],0,D.start[1]);}P.vel.set(0,0,0);
  PK={};applyPerks();P.inv=0;WEAPONS[0].ammo=50;WEAPONS[1].ammo=400;WEAPONS[2].ammo=16;score=kills=combo=bestCombo=shots=hits=0;elapsed=0;wave=-1;waveState='rest';waveTimer=3;
  selectWeapon(0);guns[0].visible=true;updateHud();}
-function retryWave(){const w=Math.max(0,wave);clearField();{const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:snap?snap.ar:0,alive:true,yaw:D.start[2]});P.vel.set(0,0,0);P.pos.set(D.start[0],0,D.start[1]);}
+function retryWave(){const w=Math.max(0,wave);clearField();{const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:snap?snap.ar:0,alive:true,yaw:D.start[2]});musicPlay(levelTrack());P.vel.set(0,0,0);P.pos.set(D.start[0],0,D.start[1]);}
  if(snap){score=snap.score;kills=snap.kills;PK={...snap.pk};applyPerks();WEAPONS.forEach((x,k)=>x.ammo=Math.max(snap.ammo[k],[50,400,16][k]));}combo=0;wave=w-1;waveState='rest';waveTimer=3;MUS.target=.1;updateHud();
  initAudio();$('end').hidden=true;state='play';lock();}
 function begin(){initAudio();if(!MUS.on)musicStart();$('start').hidden=true;$('end').hidden=true;$('pause').hidden=true;
@@ -1481,7 +1489,7 @@ function fxDemo(){loadLevel(1);window.__noPause=true;begin();P.hp=1e9;P.yaw=0;P.
  begin(){window.__noPause=true;begin();},keys,setMouse(v){mouseDown=v},look(y,p){P.yaw=y;P.pitch=p},skipTo(i){waveState='rest';waveTimer=0;wave=i-1;},
  god(){P.hp=1e9},spawn:spawnEnemy,loadLevel,get level(){return LEVEL},
  sim(sec,ai){for(let t=0;t<sec;t+=1/60){if(state=='cards')pickCard(Math.floor(Math.random()*cardOpts.length));if(ai)ai();if(state=='play'||state=='over')step(1/60,1/60);}return {state,wave,kills,score,n:enemies.length,hp:Math.round(P.hp),ammo:WEAPONS.map(w=>w.ammo)};},
- get waveState(){return waveState},get colliders(){return colliders},dbgLight(){return JSON.stringify({hemi:hemi.intensity,sun:sun.intensity,envNight:scene.environment===NIGHT.env,envDay:scene.environment===DAY.env,exp:renderer.toneMappingExposure,lights:(()=>{let n=0;scene.traverse(o=>{if(o.isLight)n++;});return n;})(),rain:RAIN.on,flash:RAIN.flash});},idle(){waveState='idle';},strideProbe(t,clipKey){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;e.g.rotation.y=0;const k=clipKey||'move';const act=e.acts[k]||e.mixer.clipAction(findClip(MODELS[TYPES[t].model].animations,k));e.mixer.stopAllAction();act.reset().play();
+ get waveState(){return waveState},get mus(){return MUS.name+'|'+MUS.want+'|'+Object.keys(MTRACK).join(',')},get colliders(){return colliders},dbgLight(){return JSON.stringify({hemi:hemi.intensity,sun:sun.intensity,envNight:scene.environment===NIGHT.env,envDay:scene.environment===DAY.env,exp:renderer.toneMappingExposure,lights:(()=>{let n=0;scene.traverse(o=>{if(o.isLight)n++;});return n;})(),rain:RAIN.on,flash:RAIN.flash});},idle(){waveState='idle';},strideProbe(t,clipKey){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;e.g.rotation.y=0;const k=clipKey||'move';const act=e.acts[k]||e.mixer.clipAction(findClip(MODELS[TYPES[t].model].animations,k));e.mixer.stopAllAction();act.reset().play();
  const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const dur=act.getClip().duration;const N=60;const tr=bones.map(()=>[]);const v=new THREE.Vector3();
  for(let f=0;f<=N;f++){e.mixer.setTime(dur*f/N);e.g.updateMatrixWorld(true);bones.forEach((b,i)=>{b.getWorldPosition(v);tr[i].push([v.y,v.z]);});}
  const res=[];bones.forEach((b,i)=>{const ys=tr[i].map(a=>a[0]);const mn=Math.min(...ys);if(mn>.25)return;let sum=0,c=0;for(let f=1;f<=N;f++){if(tr[i][f][0]<mn+.06&&tr[i][f-1][0]<mn+.06){sum+=-(tr[i][f][1]-tr[i][f-1][1])/(dur/N);c++;}}if(c>2)res.push([b.name,+mn.toFixed(2),+(sum/c).toFixed(2),c]);});
