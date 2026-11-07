@@ -408,6 +408,7 @@ function addShake(a,t=.25){shake.amp=Math.max(shake.amp,a);shake.t=Math.max(shak
 let timeScale=1,hitStop=0;
 function doHitStop(s){hitStop=Math.max(hitStop,s);}
 
+function ledgeAt(p,r){for(const c of colliders){if(!c.box||c.dead||!c.h||c.h>4||p.y>=c.h-.05||p.y<c.h-1.15)continue;const[x0,x1,z0,z1]=c.box;const cx=clamp(p.x,x0,x1),cz=clamp(p.z,z0,z1);if((p.x-cx)**2+(p.z-cz)**2<(r+.35)**2)return c;}return null;}
 function floorAt(x,z,y){let f=0;for(const c of colliders){if(!c.box||c.dead||!c.h||c.h>4||y<c.h-.45)continue;const[x0,x1,z0,z1]=c.box;if(x>x0-.25&&x<x1+.25&&z>z0-.25&&z<z1+.25&&c.h>f)f=c.h;}return f;}
 function collideCircle(pos,r){
  for(const c of colliders){if(c.dead||(c.h&&pos.y>=c.h-.05))continue;if(c.box){const[x0,x1,z0,z1]=c.box;const cx=clamp(pos.x,x0,x1),cz=clamp(pos.z,z0,z1);const dx=pos.x-cx,dz=pos.z-cz;const d2=dx*dx+dz*dz;
@@ -419,6 +420,7 @@ function collideCircle(pos,r){
 
 /* ---------- weapons (view models) ---------- */
 const vm=new THREE.Group();camera.add(vm);vm.position.set(.32,-.32,-.55);vm.scale.setScalar(.72);
+const gunLight=new THREE.PointLight(0xffe2c0,0,3,1.4);gunLight.position.set(.1,.3,-.2);camera.add(gunLight);
 const metal=pbr('metal_plate',.6,{metal:true,color:0x9a9aa0});
 const brass=new THREE.MeshStandardMaterial({color:0xb08a4a,metalness:1,roughness:.38});
 const wood=pbr('brown_planks_09',.5,{color:0xc89a78});
@@ -490,7 +492,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='41';const VQ='?v='+BUILD;
+const BUILD='42';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -761,7 +763,7 @@ function loadLevel(i){LEVEL=i;const D=LEVELS[i];
  colliders.length=0;barrels.length=0;pads.length=0;decals.forEach(d=>{d.userData.t=0;d.material.opacity=0;});scorches.forEach(c=>{c.userData.t=0;c.material.opacity=0;});
  BOUNDS={x0:-95,x1:95,z0:-95,z1:95};D.build();WAVES=D.waves;
  window.__ground.material=D.ground=='rocks'?groundMat2:D.ground=='asphalt'?asphaltMat:groundMat;
- applyNight(!!D.night);loadTrack(D.music||'music');loadTrack('boss');musicPlay(D.music||'music');if(D.night){NIGHT.hemi=D.light.hemi[2];hemi.color.set(D.light.hemi[0]);hemi.groundColor.set(D.light.hemi[1]);hemi.intensity=NIGHT.hemi;}
+ applyNight(!!D.night);gunLight.intensity=D.night?3.6:0;loadTrack(D.music||'music');loadTrack('boss');musicPlay(D.music||'music');if(D.night){NIGHT.hemi=D.light.hemi[2];hemi.color.set(D.light.hemi[0]);hemi.groundColor.set(D.light.hemi[1]);hemi.intensity=NIGHT.hemi;}
  STORM.on=false;STORM.k=0;STORM.base=D.light.fog;sun.color.set(D.light.sun);sun.intensity=D.light.int;renderer.toneMappingExposure=D.light.exp;scene.fog.color.set(D.light.fog[0]);scene.fog.near=D.light.fog[1];scene.fog.far=D.light.fog[2];
  Object.assign(sun.shadow.camera,{left:-SH,right:SH,top:SH,bottom:-SH,near:10,far:420});sun.shadow.camera.updateProjectionMatrix();
  P.pos.set(D.start[0],0,D.start[1]);P.yaw=D.start[2];P.pitch=0;followSun(true);
@@ -1431,6 +1433,7 @@ function step(dt,rdt){
   $('dashbar').style.transform='scaleX('+clamp(1-P.dashCd/dashCdMax(),0,1)+')';if(P.inv>0)P.inv-=dt;
   if(P.dashT>0&&pk('ram'))for(const e of enemies){if(!e.alive||e.rammed===P.dashId)continue;const dx=e.g.position.x-P.pos.x,dz=e.g.position.z-P.pos.z;if(dx*dx+dz*dz<(e.r+1.3)**2&&Math.abs(e.g.position.y-P.pos.y)<2.5){e.rammed=P.dashId;damageEnemy(e,70,new THREE.Vector3(dx,0,dz).normalize(),'ram',2);addShake(.4,.15);SFX.hit();}}
   P.vel.y-=26*dt;P.pos.addScaledVector(P.vel,dt);
+  if(!P.onGround&&P.vel.y>-4){const lc=ledgeAt(P.pos,.6);if(lc&&((clamp(P.pos.x,lc.box[0],lc.box[1])-P.pos.x)*P.vel.x+(clamp(P.pos.z,lc.box[2],lc.box[3])-P.pos.z)*P.vel.z>=0)){P.pos.y=lc.h;P.vel.y=0;const cx=clamp(P.pos.x,lc.box[0]+.3,lc.box[1]-.3),cz=clamp(P.pos.z,lc.box[2]+.3,lc.box[3]-.3);P.pos.x+=(cx-P.pos.x)*.6;P.pos.z+=(cz-P.pos.z)*.6;SFX.land();}}
   const fl=floorAt(P.pos.x,P.pos.z,P.pos.y);if(P.pos.y<=fl){if(!P.onGround&&P.vel.y<-8){SFX.land();kick.p-=.02;}P.pos.y=fl;P.vel.y=0;P.onGround=true;}else if(P.pos.y>fl+.02&&P.vel.y<0)P.onGround=false;
   collideCircle(P.pos,.6);
   const moving=wish.lengthSq()>0&&P.onGround;const pb=P.bob;P.bob+=dt*(moving?11:0);if(Math.floor(pb/Math.PI)!=Math.floor(P.bob/Math.PI))SFX.step();
