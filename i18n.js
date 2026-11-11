@@ -58,6 +58,16 @@ const ZH = {
   'TRICERATOPS': '三角龙', 'IT CHARGES IN A STRAIGHT LINE': '它沿直线冲锋', 'SIDESTEP, OR MAKE IT HIT A WALL': '侧移躲开，或者引它撞墙',
   'GUNBOTS': '枪械机器人', 'THEY FIRE THREE-SHOT BURSTS': '一次三连发', 'KEEP MOVING SIDEWAYS': '保持横向移动',
   'THEY CIRCLE OVERHEAD AND SNIPE': '在头顶盘旋点射', 'CHAINGUN THEM DOWN': '用机枪打下来',
+  // ---- build 46: undead, aliens, headshots, horde rush ----
+  'GHOULS': '食尸鬼', 'SLOW, MANY, AND THEY NEVER STOP': '慢，多，而且永不停步', 'AIM FOR THE HEAD': '瞄准头部',
+  'REVENANT': '亡灵战士', 'ARMOURED DEAD': '披甲的亡灵', 'HEADSHOTS GO THROUGH THE HELMET': '爆头可以打穿头盔',
+  'LICH': '巫妖', 'IT THROWS BOLTS FROM A DISTANCE': '它会从远处投射法弹', 'KILL IT EARLY': '尽早击杀',
+  'XENOS': '异形', 'FAST AND STRONG': '又快又壮', 'DO NOT LET THEM CLOSE IN': '别让它们近身',
+  'STALKERS': '潜猎者', 'ALIENS THAT DIVE FROM ABOVE': '从空中俯冲的异形', 'SHOOT THEM IN THE AIR': '在空中把它们打下来',
+  'HEADSHOT': '爆头', 'Headshots': '爆头数', 'HEADSHOTS': '爆头', 'DEADEYE': '神枪手', 'Headshots deal 40% more damage.': '爆头伤害提高 40%。',
+  'HORDE RUSH': '尸潮狂涌', 'HOLD THE TRIGGER DOWN': '按住扳机别松手', 'RUSH OVER': '狂潮结束', 'FINISH WHAT IS LEFT': '清掉剩下的',
+  'THE DEAD RISE': '亡者苏醒', 'THEY CAME FROM THE SKY': '天外来客', 'THE DEAD WALK': '亡者行军', 'GRAVEYARD SHIFT': '墓地夜班',
+  'Horde inbound. Command has opened the ammo line: fire as much as you like until it ends.': '尸潮来了。指挥部已开放弹药补给线：结束之前随便打，子弹管够。',
   // ---- upgrades ----
   'EVERY SECOND WAVE': '每两波一次', 'CHOOSE AN UPGRADE': '选择一项升级', 'Click a card or press 1, 2 or 3. Upgrades last until the arena ends.': '点击卡片或按 1、2、3。升级持续到本场地结束。',
   'ONE TIME': '仅一次', 'No upgrades yet.': '还没有升级。',

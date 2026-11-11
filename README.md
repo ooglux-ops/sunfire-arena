@@ -4,7 +4,7 @@ A fast horde-shooting arena game that runs in the browser (three.js).
 
 **Play:** https://ooglux-ops.github.io/sunfire-arena/
 
-Keyboard and mouse required. WASD to move, mouse to aim and fire, Space to jump, Shift to dash, 1–5 to switch weapons (scattergun, chaingun, mortar, rifle, sniper), Q for the sidearm (unlimited ammo), hold right mouse to aim down sights, R to reload, G to throw a grenade, Esc to pause (mouse and volume settings are there too).
+Keyboard and mouse required. WASD to move, mouse to aim and fire, Space to jump, Shift to dash, 1–5 to switch weapons (scattergun, chaingun, mortar, rifle, sniper), Q for the sidearm (unlimited ammo), hold right mouse to aim down sights, R to reload, G to throw a grenade, headshots do double damage, Esc to pause (mouse and volume settings are there too).
 
 Each arena downloads only the models it needs, and the 3D engine and fonts are served from this repo, so the game has no outside dependencies.
 
@@ -14,6 +14,7 @@ Each arena downloads only the models it needs, and the 3D engine and fonts are s
 - Sounds: Freedoom (BSD), Kenney (CC0)
 - Music: "Battle Theme A" by cynicmusic (CC0); Royalty Free Music Pack by Efface Studios (CC0)
 - Vehicles: Kenney Car Kit (CC0)
+- Undead enemies: KayKit Character Pack: Skeletons by Kay Lousberg (CC0); alien enemies: Quaternius Ultimate Space Kit (CC0)
 - Interface languages: English and 中文 (switch on the main menu; strings live in `i18n.js`)
 - Weapon models: built in code (`guns.js`); preview them with `tools/gunlab.html?g=0..5&view=fp|ads|side`
 - Engine: three.js r160 (MIT), in `vendor/three`

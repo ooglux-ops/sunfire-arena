@@ -47,17 +47,41 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
   const rx = (m, a) => { m.rotation.x = a; return m; };
   const UP = new THREE.Vector3(0, 1, 0);
   function limb(r0, r1, a, b, mat) { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b); const d = B.clone().sub(A); const m = mesh(new THREE.CylinderGeometry(r1, r0, d.length(), 14), mat); m.position.copy(A).addScaledVector(d, .5); m.quaternion.setFromUnitVectors(UP, d.normalize()); return m; }
-  // a gloved hand wrapped around something at `at`, with the forearm running off to `elbow`
-  function hand(g, at, elbow, o = {}) {
+  // ---- gloved hands. All three builders end in a tapered forearm that runs off-screen to `elbow`. ----
+  const cap = (r, l, mat, x, y, z, axis = 'y') => { const m = mesh(new THREE.CapsuleGeometry(r, l, 4, 10), mat, x, y, z); if (axis === 'x') m.rotation.z = Math.PI / 2; if (axis === 'z') m.rotation.x = Math.PI / 2; return m; };
+  function forearm(g, wrist, elbow) {
+    const W = new THREE.Vector3(...wrist), E = new THREE.Vector3(...elbow), d = E.clone().sub(W).normalize();
+    const c0 = W.clone().addScaledVector(d, -.012), c1 = W.clone().addScaledVector(d, .05);
+    g.add(limb(.031, .036, [c0.x, c0.y, c0.z], [c1.x, c1.y, c1.z], M.pad));            // glove cuff
+    g.add(limb(.037, .054, [c1.x, c1.y, c1.z], elbow, M.sleeve));                        // sleeve, wider toward the elbow
+    const f = W.clone().addScaledVector(d, .075); g.add(limb(.0405, .0405, [f.x, f.y, f.z], [f.x + d.x * .012, f.y + d.y * .012, f.z + d.z * .012], M.pad)); // strap
+  }
+  // support hand cupping a horizontal fore-end from below. `at` = centre of the fore-end's underside, w = its width, side 1 = arm comes from the left
+  function cup(g, at, elbow, w, side = 1) {
     const h = new THREE.Group(); h.position.set(...at);
-    const s = o.s || 1; const palm = rb(.05 * s, .085 * s, .085 * s, M.glove, 0, 0, 0, .018); h.add(palm);
-    const side = o.side || 1; // which way the fingers wrap
-    for (let i = 0; i < 4; i++) { const f = rb(.05 * s, .019 * s, .03 * s, M.glove, -side * .03 * s, .032 * s - i * .021 * s, -.035 * s, .008); h.add(f); const k = rb(.022 * s, .02 * s, .02 * s, M.pad, -side * .008 * s, .032 * s - i * .021 * s, -.05 * s, .006); h.add(k); }
-    const th = rb(.022 * s, .024 * s, .06 * s, M.glove, side * .012 * s, .05 * s, -.02 * s, .009); th.rotation.x = .25; h.add(th);
-    const cuff = rb(.062 * s, .05 * s, .05 * s, M.pad, 0, -.005 * s, .058 * s, .012); h.add(cuff);
-    if (o.rot) h.rotation.set(...o.rot); g.add(h);
-    const w = new THREE.Vector3(0, -.005 * s, .07 * s).applyEuler(h.rotation).add(h.position);
-    g.add(limb(.036 * s, .05 * s, [w.x, w.y, w.z], elbow, M.sleeve));
+    h.add(rb(w + .026, .03, .1, M.glove, 0, -.017, 0, .014));
+    for (let i = 0; i < 4; i++) { const f = cap(.0092, .03, M.glove, side * (w / 2 + .0075), .006, -.037 + i * .0245); f.rotation.z = side * .18; h.add(f); h.add(mesh(new THREE.SphereGeometry(.0085, 10, 8), M.pad, side * (w / 2 + .012), -.004, -.037 + i * .0245)); }
+    const th = cap(.0105, .045, M.glove, -side * (w / 2 + .009), .008, -.012, 'z'); th.rotation.y = -side * .12; h.add(th);
+    h.add(rb(.05, .034, .05, M.glove, -side * .012, -.03, .055, .015));
+    g.add(h); forearm(g, [at[0] - side * .02, at[1] - .04, at[2] + .075], elbow);
+  }
+  // hand closed around a vertical grip (fore-grip, carry handle). `at` = centre of the grip, side 1 = arm comes from the left
+  function fist(g, at, elbow, side = 1) {
+    const h = new THREE.Group(); h.position.set(...at);
+    h.add(rb(.036, .086, .07, M.glove, -side * .03, 0, .004, .016));
+    for (let i = 0; i < 4; i++) { const y = .032 - i * .0215; h.add(cap(.0098, .05, M.glove, -side * .004, y, -.034, 'x')); h.add(cap(.0092, .018, M.glove, side * .027, y, -.02, 'z')); h.add(mesh(new THREE.SphereGeometry(.0088, 10, 8), M.pad, -side * .026, y, -.04)); }
+    h.add(cap(.0108, .04, M.glove, 0, .045, .03, 'x'));
+    h.add(rb(.04, .05, .05, M.glove, -side * .05, -.012, .03, .016));
+    g.add(h); forearm(g, [at[0] - side * .068, at[1] - .02, at[2] + .05], elbow);
+  }
+  // firing hand on a pistol-style grip, seen from behind. `at` = middle of the grip, lean = grip rake
+  function gripHand(g, at, elbow, lean = -.28, s = 1) {
+    const h = new THREE.Group(); h.position.set(...at); h.rotation.x = lean;
+    h.add(rb(.052 * s, .092 * s, .04 * s, M.glove, 0, 0, .036 * s, .017));
+    for (let i = 0; i < 3; i++) { const y = .012 - i * .023; h.add(cap(.01 * s, .046 * s, M.glove, 0, y * s, -.03 * s, 'x')); }
+    for (const sx of [-1, 1]) h.add(rb(.012 * s, .075 * s, .06 * s, M.glove, sx * .024 * s, -.008 * s, .005 * s, .006));
+    h.add(cap(.0105 * s, .04 * s, M.glove, -.027 * s, .045 * s, -.005 * s, 'z'));
+    g.add(h); forearm(g, [at[0] + .004, at[1] - .012, at[2] + .075 * s], elbow);
   }
   function rail(g, x, y, z0, z1, mat = M.dark) { g.add(bx(.019, .006, z1 - z0, mat, x, y, (z0 + z1) / 2)); for (let z = z0 + .006; z < z1; z += .0125) g.add(bx(.021, .0055, .006, mat, x, y + .0045, z)); }
   const out = [];
@@ -74,8 +98,8 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     g.add(rx(rb(.011, .008, .05, M.steel, 0, .06, -.035, .003), 0));
     g.add(bx(.01, .003, .075, M.steel, 0, -.036, -.03)); g.add(bx(.01, .022, .003, M.steel, 0, -.025, -.066)); g.add(rx(bx(.004, .022, .005, M.steel, 0, -.024, -.03), .3)); g.add(rx(bx(.004, .022, .005, M.steel, 0, -.024, -.012), .3));
     g.add(rx(rb(.042, .052, .15, M.wood, 0, -.008, .085, .018), -.22)); g.add(rx(rb(.046, .105, .24, M.wood, 0, -.05, .27, .02), -.1));
-    hand(g, [-.004, -.012, -.33], [-.2, -.3, -.02], { rot: [0, 0, 1.25], side: 1, s: 1.08 });
-    hand(g, [.006, -.03, .085], [.14, -.3, .4], { rot: [-.35, 0, -.25], side: -1 });
+    cup(g, [0, -.019, -.33], [-.52, -.27, .02], .064);
+    gripHand(g, [0, -.03, .095], [.13, -.3, .44], -.22);
     out.push({ g, name: 'scattergun', hip: [.2, -.2, -.3], ads: [0, -.085, -.22], muzzle: [0, .03, -.74], adsFov: 62 });
   }
   // ---------- 1 · chaingun: six rotating barrels, motor, feed chute ----------
@@ -93,7 +117,9 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     for (let i = 0; i < 9; i++) { const a = i * .2; const c = rb(.05, .014, .016, M.brass, .13 + Math.sin(a) * .06, -.07 - i * .022, .1, .004); c.rotation.z = -a * .6; g.add(c); }
     for (const z of [-.06, .1]) g.add(cy(.008, .07, M.dark, 0, .105, z, 10)); g.add(rb(.022, .022, .22, M.pad, 0, .14, .02, .009));
     g.add(rb(.03, .11, .04, M.pad, 0, -.12, .2, .012)); g.add(bx(.012, .006, .1, M.dark, 0, -.07, .15));
-    hand(g, [.004, -.12, .2], [.2, -.34, .5], { rot: [-.2, 0, -.2], side: -1 });
+    gripHand(g, [0, -.12, .2], [.16, -.36, .52], -.1);
+    fist(g, [-.1, .035, .19], [-.42, -.3, .42]);
+    g.add(cy(.012, .1, M.pad, -.1, .035, .19, 12));
     out.push({ g, name: 'chaingun', hip: [.2, -.25, -.36], ads: [.1, -.21, -.32], muzzle: [0, 0, -.64], adsFov: 68 });
   }
   // ---------- 2 · launcher: six-chamber drum, short fat tube ----------
@@ -110,8 +136,8 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     g.add(cy(.017, .09, M.pad, 0, -.035, -.36, 14)); g.add(rb(.03, .02, .05, M.dark, 0, .0, -.36, .005));
     g.add(rx(rb(.036, .1, .046, M.pad, 0, -.07, .0, .012), -.28)); g.add(bx(.01, .003, .06, M.dark, 0, -.035, -.045));
     g.add(cz(.014, .2, M.dark, 0, .02, .13, 12)); g.add(rb(.04, .1, .05, M.pad, 0, .0, .24, .012));
-    hand(g, [0, -.04, -.36], [-.22, -.3, -.05], { rot: [0, 0, .2], side: 1 });
-    hand(g, [.004, -.07, .005], [.15, -.32, .36], { rot: [-.3, 0, -.2], side: -1 });
+    fist(g, [0, -.04, -.36], [-.52, -.27, .0]);
+    gripHand(g, [0, -.07, .008], [.14, -.32, .4]);
     out.push({ g, name: 'launcher', hip: [.21, -.21, -.3], ads: [.08, -.17, -.28], muzzle: [0, .035, -.58], adsFov: 70 });
   }
   // ---------- 3 · sidearm ----------
@@ -126,8 +152,8 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     g.add(rx(rb(.03, .105, .05, M.poly, 0, -.058, .012, .01), -.24)); g.add(rx(bx(.031, .08, .002, M.dark, 0, -.06, .039), -.24)); g.add(rx(rb(.032, .012, .054, M.dark, 0, -.112, .026, .004), -.24));
     g.add(bx(.008, .003, .05, M.poly, 0, -.034, -.045)); g.add(rx(bx(.008, .03, .003, M.poly, 0, -.02, -.071), .2)); g.add(rx(bx(.005, .02, .004, M.steel, 0, -.02, -.04), .25));
     g.add(bx(.004, .006, .018, M.steel, -.0155, .014, -.055));
-    hand(g, [.002, -.06, .016], [.1, -.3, .32], { rot: [-.25, 0, -.15], side: -1, s: .95 });
-    hand(g, [-.02, -.075, .012], [-.24, -.3, .22], { rot: [-.25, 0, .5], side: 1, s: .95 });
+    gripHand(g, [0, -.06, .016], [.09, -.27, .4], -.24, .92);
+    { const h = new THREE.Group(); h.position.set(-.03, -.078, .012); h.rotation.x = -.24; h.add(rb(.03, .08, .07, M.glove, 0, 0, .012, .013)); for (let i = 0; i < 4; i++) h.add(cap(.0092, .05, M.glove, .03, .026 - i * .02, -.036, 'x')); h.add(cap(.0105, .042, M.glove, .004, .052, -.02, 'z')); g.add(h); forearm(g, [-.05, -.1, .06], [-.4, -.3, .2]); }
     out.push({ g, name: 'sidearm', hip: [.17, -.16, -.32], ads: [0, -.052, -.36], muzzle: [0, .03, -.2], adsFov: 62 });
   }
   // ---------- 4 · rifle: carbine with a red-dot sight ----------
@@ -150,8 +176,8 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     for (const s of [-1, 1]) g.add(rb(.005, .046, .05, M.dark, s * .0195, .106, -.075, .002)); g.add(rb(.044, .005, .05, M.dark, 0, .131, -.075, .002)); g.add(cz(.006, .02, M.dark, .028, .1, -.075, 10));
     const lens = mesh(new THREE.PlaneGeometry(.034, .042), M.lens, 0, .106, -.09); g.add(lens);
     const dot = mesh(new THREE.CircleGeometry(.0011, 12), M.dot, 0, .106, -.0895); g.add(dot);
-    hand(g, [0, -.05, -.35], [-.24, -.32, -.02], { rot: [0, 0, .25], side: 1 });
-    hand(g, [.004, -.078, .044], [.15, -.32, .4], { rot: [-.3, 0, -.2], side: -1 });
+    fist(g, [0, -.05, -.35], [-.52, -.27, .0]);
+    gripHand(g, [0, -.078, .044], [.14, -.32, .42]);
     out.push({ g, name: 'rifle', hip: [.2, -.2, -.3], ads: [0, -.106, -.1], muzzle: [0, .032, -.74], adsFov: 50 });
   }
   // ---------- 5 · sniper: heavy bolt-action with a scope ----------
@@ -171,8 +197,8 @@ export function buildGuns(THREE, RoundedBoxGeometry) {
     g.add(rx(rb(.036, .1, .046, M.pad, 0, -.075, .06, .012), -.3)); g.add(bx(.01, .003, .06, M.dark, 0, -.04, .01));
     g.add(rb(.044, .09, .3, M.tan, 0, .0, .27, .014)); g.add(rb(.038, .03, .15, M.pad, 0, .06, .22, .01)); g.add(rb(.046, .1, .02, M.pad, 0, 0, .43, .008));
     for (const s of [-1, 1]) { g.add(limb(.006, .006, [s * .02, -.02, -.5], [s * .028, -.04, -.26], M.dark)); g.add(rb(.012, .012, .03, M.pad, s * .028, -.04, -.25, .004)); } g.add(rb(.05, .02, .03, M.dark, 0, -.02, -.51, .005));
-    hand(g, [0, -.045, -.33], [-.24, -.32, 0], { rot: [0, 0, 1.3], side: 1, s: 1.08 });
-    hand(g, [.004, -.078, .066], [.15, -.32, .42], { rot: [-.3, 0, -.2], side: -1 });
+    cup(g, [0, -.025, -.34], [-.52, -.27, .02], .05);
+    gripHand(g, [0, -.078, .066], [.14, -.32, .44]);
     out.push({ g, name: 'sniper', hip: [.21, -.21, -.26], ads: [0, -.112, -.1], muzzle: [0, .036, -.98], adsFov: 20, scope: true });
   }
   out.forEach(w => w.g.traverse(o => { if (o.isMesh) o.renderOrder = 10; }));
