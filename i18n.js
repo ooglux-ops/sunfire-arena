@@ -60,7 +60,9 @@ const ZH = {
   'THEY CIRCLE OVERHEAD AND SNIPE': '在头顶盘旋点射', 'CHAINGUN THEM DOWN': '用机枪打下来',
   // ---- build 46: undead, aliens, headshots, horde rush ----
   'GHOULS': '食尸鬼', 'SLOW, MANY, AND THEY NEVER STOP': '慢，多，而且永不停步', 'AIM FOR THE HEAD': '瞄准头部',
-  'REVENANT': '亡灵战士', 'ARMOURED DEAD': '披甲的亡灵', 'HEADSHOTS GO THROUGH THE HELMET': '爆头可以打穿头盔',
+  'REVENANT': '亡灵战士', 'ARMOURED DEAD': '披甲的亡灵', 'IT CHARGES': '会冲锋', 'HEADSHOTS HURT IT MOST': '打头最有效',
+  'THE WARLORD LEAPS': '军阀跃起', 'GET OUT OF THE RED CIRCLE': '离开红圈', 'DOUBLE HEADSHOT': '双连爆头', 'TRIPLE HEADSHOT': '三连爆头',
+  'Head': '头部', 'Headshots with the rifle, sniper or sidearm do double damage': '用步枪、狙击枪或手枪爆头，伤害翻倍',
   'LICH': '巫妖', 'IT THROWS BOLTS FROM A DISTANCE': '它会从远处投射法弹', 'KILL IT EARLY': '尽早击杀',
   'XENOS': '异形', 'FAST AND STRONG': '又快又壮', 'DO NOT LET THEM CLOSE IN': '别让它们近身',
   'STALKERS': '潜猎者', 'ALIENS THAT DIVE FROM ABOVE': '从空中俯冲的异形', 'SHOOT THEM IN THE AIR': '在空中把它们打下来',
@@ -115,6 +117,7 @@ const DIFF_ZH = { EASY: '简单', NORMAL: '普通', HARD: '困难' };
 const PAT = [
   [/^WAVE (\d+) \/ (\d+)$/, m => `第 ${m[1]} / ${m[2]} 波`],
   [/^WAVE (\d+)$/, m => `第 ${m[1]} 波`],
+  [/^HEADSHOT ×(\d+)$/, m => `爆头 ×${m[1]}`],
   [/^NEXT WAVE IN (\d+)$/, m => `下一波 ${m[1]} 秒`],
   [/^(\d+) HOSTILES$/, m => `剩余 ${m[1]} 个敌人`],
   [/^(\d+) KILLS(.*)$/, m => `${m[1]} 连杀${m[2]}`],
