@@ -14,6 +14,7 @@ Each arena downloads only the models it needs, and the 3D engine and fonts are s
 - Sounds: Freedoom (BSD), Kenney (CC0)
 - Music: "Battle Theme A" by cynicmusic (CC0); Royalty Free Music Pack by Efface Studios (CC0)
 - Vehicles: Kenney Car Kit (CC0)
+- Interface languages: English and 中文 (switch on the main menu; strings live in `i18n.js`)
 - Weapon models: built in code (`guns.js`); preview them with `tools/gunlab.html?g=0..5&view=fp|ads|side`
 - Engine: three.js r160 (MIT), in `vendor/three`
 - Fonts: Black Ops One, Chakra Petch (SIL Open Font License), in `vendor/fonts`
