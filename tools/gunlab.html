@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>Gun lab</title>
+<style>html,body{margin:0;height:100%;background:#222;overflow:hidden}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three/build/three.module.min.js","three/addons/":"../vendor/three/examples/jsm/"}}</script>
+<script type="module">
+// Weapon preview: ?g=0..5  &view=fp|side|ads   (development tool, not part of the game)
+import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {buildGuns} from '../guns.js';
+const q=new URLSearchParams(location.search);const gi=+(q.get('g')||0),view=q.get('view')||'fp';
+const r=new THREE.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(q.get('bg')||'#8a7a66');
+scene.environment=new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(),.04).texture;
+const sun=new THREE.DirectionalLight(0xfff0d8,2);sun.position.set(-2,4,1);scene.add(sun);
+const {guns}=buildGuns(THREE,RoundedBoxGeometry);const W=guns[gi];
+const cam=new THREE.PerspectiveCamera(view=='ads'?W.adsFov:78,innerWidth/innerHeight,.12,50);scene.add(cam);
+if(view=='side'){scene.add(W.g);cam.fov=30;cam.updateProjectionMatrix();cam.position.set(+(q.get('cx')||1.6),.25,-.25);cam.lookAt(0,0,-.25);}
+else{const vm=new THREE.Group();vm.position.set(...(view=='ads'?W.ads:W.hip));if(view!='ads')vm.rotation.set(0,.16,-.06);vm.add(W.g);cam.add(vm);}
+r.render(scene,cam);window.__done=true;
+</script>
