@@ -76,6 +76,11 @@ input[type=range]{accent-color:var(--ember);width:120px}
 #scope::before{left:50%;top:calc(50% - 37vh);width:1px;height:74vh}
 #scope::after{top:50%;left:calc(50% - 37vh);height:1px;width:74vh}
 #cross.off{opacity:0}
+#radar{left:calc(14px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));width:168px;height:168px}
+#hitarcs{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none}
+#hitarcs b{position:absolute;left:0;top:0;width:0;height:0;opacity:0}
+#hitarcs b i{position:absolute;left:-80px;top:calc(-1 * min(30vh,230px));width:160px;height:54px;background:radial-gradient(ellipse 50% 100% at 50% 0%,#ff2410f0,#ff241000 72%);clip-path:polygon(0 34%,50% 0,100% 34%,84% 100%,50% 58%,16% 100%)}
+.chev.near{border-bottom-color:#ff5a3a;border-left-width:6px;border-right-width:6px;border-bottom-width:10px;margin:-5px 0 0 -6px;opacity:.9}
 #cross.crit::before,#cross.crit::after{background:#ffd040}
 #cross.crit{transform:translate(-50%,-50%) scale(1.5)}
 #hs{left:50%;top:calc(50% + 40px);transform:translateX(-50%);font-size:30px;color:#ffd040;letter-spacing:.12em;opacity:0;white-space:nowrap;text-align:center;text-shadow:0 2px 0 #000a,0 0 18px #ff8a2088}
@@ -135,6 +140,8 @@ button.card .lv{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.1
 <div id="dmg"></div><div id="threats"></div><div id="hitdir"></div>
 <div id="vig"></div>
 <div id="scope" hidden></div>
+<canvas class="hud" id="radar" width="336" height="336"></canvas>
+<div id="hitarcs"></div>
 <div class="hud" id="compass" data-noi18n><div id="cstrip"></div><div id="cmarks"></div><i id="cneedle"></i></div>
 <div class="hud" id="radio"><b>CONTROL</b><span id="radiot" data-noi18n></span></div>
 <div class="hud" id="cross"></div>
@@ -198,8 +205,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildGuns} from './guns.js?v=47';
-import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=47';
+import {buildGuns} from './guns.js?v=48';
+import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=48';
 {
 const $=id=>document.getElementById(id);
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -546,7 +553,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='47';const VQ='?v='+BUILD;
+const BUILD='48';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech','alien_large','alien_small','alien_mite'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -1078,7 +1085,9 @@ function explode(p,radius,dmg,fromBomber,src,barrel,safe){fireball(p,radius*.55,
   const dir=e.g.position.clone().sub(p).setY(0).normalize();damageEnemy(e,dmg*(.35+.65*f),dir,'splash');}}
  if(dd<radius&&!safe){const f=1-dd/radius;hurtPlayer((barrel?30:22)*(.4+.6*f)*(fromBomber||barrel?1:.55),p);
   const push=P.pos.clone().sub(p).setY(0).normalize().multiplyScalar(18*f);P.vel.add(push);P.vel.y+=3*f;P.onGround=false;}}
-function hurtPlayer(d,from){if(!P.alive||state!='play'||P.inv>0)return;d*=DIFF.dmg*Math.pow(.85,pk('skin'));if(P.dashT>0)d*=.5;P.calm=0;const ab=Math.min(P.ar,d*.6);P.ar-=ab;P.hp-=d-ab;if(P.hp>0&&P.hp<30)radio(RADIO.hurt,4,'hurt',40);
+const HURTS=[];
+function hurtPlayer(d,from){if(!P.alive||state!='play'||P.inv>0)return;if(window.__hurtLog&&from){let bt='shot/other',bd=4;for(const e of enemies){if(!e.alive)continue;const q=Math.hypot(e.g.position.x-from.x,e.g.position.z-from.z);if(q<bd){bd=q;bt=e.type;}}HURTS.push({w:wave,d,t:bt,dist:+Math.hypot(from.x-P.pos.x,from.z-P.pos.z).toFixed(1),a:+relAngle(from).toFixed(2),y:+(from.y||0).toFixed(1)});}
+ d*=DIFF.dmg*Math.pow(.85,pk('skin'));if(P.dashT>0)d*=.5;P.calm=0;const ab=Math.min(P.ar,d*.6);P.ar-=ab;P.hp-=d-ab;if(P.hp>0&&P.hp<30)radio(RADIO.hurt,4,'hurt',40);
  SFX.hurt();addShake(.35,.2);showHitDir(from);const el=$('dmg');el.style.transition='none';el.style.opacity=Math.min(1,.35+d/40);requestAnimationFrame(()=>{el.style.transition='opacity .45s';el.style.opacity=0;});
  if(P.hp<=0&&pk('last')>0){PK.last--;P.hp=1;P.inv=1.5;flashBanner('LAST STAND','',1.4);doHitStop(.2);}
  if(P.hp<=0){P.hp=0;die();}updateHud();}
@@ -1178,14 +1187,22 @@ function flashBanner(t,s,dur,small){const b=$('banner');b.innerHTML=tr(t)+(s?'<s
 /* ---------- enemy AI ---------- */
 const tmpV=new THREE.Vector3();let lastBeep=0;const T_y0b=e=>TYPES.brute.y0*1.65;
 function armOf(x,z){if(Math.abs(x)<17&&Math.abs(z)<17)return 'c';return Math.abs(x)>Math.abs(z)?(x>0?'x+':'x-'):(z>0?'z+':'z-');}
-function navPoint(p){if(!LEVELS[LEVEL].streets)return null;const a=armOf(p.x,p.z),b=armOf(P.pos.x,P.pos.z);if(a=='c'||a==b)return null;
- // walk the arm back to the crossing first; also pull wanderers out of side alleys onto the street centre
- if(a[0]=='x')return {x:Math.abs(p.z)>9?p.x:0,z:Math.abs(p.z)>9?0:0};return {x:Math.abs(p.x)>9?0:0,z:Math.abs(p.x)>9?p.z:0};}
+function navPoint(p,e){if(!LEVELS[LEVEL].streets)return null;const SWN=13;const a=armOf(p.x,p.z),b=armOf(P.pos.x,P.pos.z);
+ if(e&&e.navT>0){const ax=a=='c'?(Math.abs(p.x)>Math.abs(p.z)?'x':'z'):a[0];return ax=='x'?{x:p.x*.8,z:0}:{x:0,z:p.z*.8};} // was stuck: head for the street centre line
+ const lat=(arm,q)=>arm[0]=='x'?q.z:q.x,along=(arm,q)=>arm[0]=='x'?q.x:q.z,mk=(arm,al,la)=>arm[0]=='x'?{x:al,z:la}:{x:la,z:al};
+ if(a!='c'&&a!=b){ // different street: leave any side alley, then walk to the crossing
+  if(Math.abs(lat(a,p))>9)return mk(a,along(a,p),0);return {x:0,z:0};}
+ const arm=a=='c'?b:a;if(arm=='c')return null;
+ // same street (or coming out of the crossing): if the player is tucked into a side alley, walk down the street until level with it
+ const pl=lat(arm,P.pos),ml=lat(arm,p),pa=along(arm,P.pos),ma=along(arm,p);
+ if(Math.abs(ml)>SWN&&(Math.abs(pl)<=SWN||Math.abs(pa-ma)>4||pl*ml<0))return mk(arm,ma,clamp(ml,-SWN+3,SWN-3)); // I am in an alley and the player is not in it: step back out
+ if(Math.abs(pl)>SWN&&Math.abs(pa-ma)>3)return mk(arm,pa,clamp(pl,-SWN+3,SWN-3));
+ return null;}
 function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.alive&&!o.passive).length<=2;
  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(!e.alive){enemies.splice(i,1);continue;}
   e.t+=dt;const p=e.g.position;const to=tmpV.set(P.pos.x-p.x,0,P.pos.z-p.z);const dist=to.length();to.normalize();
   if(e.ai=='bull'){updateBull(e,dt);continue;}
-  const np=e.perch||e.ai=='bull'?null:navPoint(p);if(np){to.set(np.x-p.x,0,np.z-p.z);if(to.lengthSq()<1)to.set(-p.x,0,-p.z);to.normalize();}
+  if(e.navT>0)e.navT-=dt;const np=e.perch||e.ai=='bull'?null:navPoint(p,e);if(np){to.set(np.x-p.x,0,np.z-p.z);if(to.lengthSq()<1)to.set(-p.x,0,-p.z);to.normalize();}
   let spd=e.speed;let animRate=1;
   if(e.entering>0){e.entering-=dt;}
   if(e.stun>0){e.stun-=dt;spd*=.2;}
@@ -1344,7 +1361,7 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
    if(d2<rr*rr&&d2>1e-4){const d=Math.sqrt(d2);mv.x+=dx/d*(rr-d)*8;mv.z+=dz/d*(rr-d)*8;}}
   e.knock.multiplyScalar(Math.pow(.02,dt));
   p.x+=(mv.x+e.knock.x)*dt;p.z+=(mv.z+e.knock.z)*dt;
-  e.chk=(e.chk||0)-dt;if(e.chk<=0){const moved=e.lp?Math.hypot(p.x-e.lp.x,p.z-e.lp.z):9;const ranged=e.ai=='sniper'||e.ai=='summoner';if(moved<1.2&&dist>4&&!e.perch&&!TYPES[e.type].fly&&!e.leap&&!e.pk&&!(typeof e.st=='string'&&e.st!='walk')&&(ranged?dist>64:e.attackT<=0))e.ghost=2.5;e.lp={x:p.x,z:p.z};e.chk=3;}
+  e.chk=(e.chk||0)-dt;if(e.chk<=0){const moved=e.lp?Math.hypot(p.x-e.lp.x,p.z-e.lp.z):9;const ranged=e.ai=='sniper'||e.ai=='summoner';if(moved<1.2&&dist>4&&!e.perch&&!TYPES[e.type].fly&&!e.leap&&!e.pk&&!(typeof e.st=='string'&&e.st!='walk')&&(ranged?dist>64:e.attackT<=0)){if(LEVELS[LEVEL].streets&&((e.stuckN=(e.stuckN||0)+1)<4||dist<30))e.navT=2.6;else{e.ghost=2.5;e.stuckN=0;}}else e.stuckN=0;e.lp={x:p.x,z:p.z};e.chk=3;}
   if(e.ghost>0){e.ghost-=dt;p.x=clamp(p.x,BOUNDS.x0,BOUNDS.x1);p.z=clamp(p.z,BOUNDS.z0,BOUNDS.z1);}else if(e.entering<=0)collideCircle(p,e.r);
   else{p.x=clamp(p.x,BOUNDS.x0-12,BOUNDS.x1+12);p.z=clamp(p.z,BOUNDS.z0-12,BOUNDS.z1+12);}
   // turn smoothly toward the player
@@ -1412,11 +1429,13 @@ function updateShocks(dt){for(let i=shocks.length-1;i>=0;i--){const s=shocks[i];
  const a=rand(0,6.28);smoke(new THREE.Vector3(s.x+Math.cos(a)*s.r,.4,s.z+Math.sin(a)*s.r),{size:1.2,grow:1.5,life:.6,color:0xc9a77c,alpha:.4,rise:.6});
  const d=Math.hypot(P.pos.x-s.x,P.pos.z-s.z);if(!s.hit&&Math.abs(d-s.r)<1.4&&P.pos.y<.9&&state=='play'){s.hit=true;hurtPlayer(s.dmg,new THREE.Vector3(s.x,0,s.z));const k=Math.max(d,.1);P.vel.x+=(P.pos.x-s.x)/k*11;P.vel.z+=(P.pos.z-s.z)/k*11;P.vel.y+=5;P.onGround=false;}
  if(s.r>=s.maxR){scene.remove(s.m);s.m.material.dispose();shocks.splice(i,1);}}}
-const warnGeo=new THREE.RingGeometry(.78,1,48);
+const warnGeo=new THREE.RingGeometry(.78,1,48),beamGeo=new THREE.CylinderGeometry(.5,.5,60,10,1,true);
 function warnMark(x,z,r,dur){const m=new THREE.Mesh(warnGeo,new THREE.MeshBasicMaterial({color:0xff3b1a,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));
  m.rotation.x=-Math.PI/2;m.position.set(x,.2,z);m.scale.setScalar(r);m.renderOrder=2;scene.add(m);fx.push({m,t:0,dur,type:'warn'});}
 const meteors=[];const meteorMat=new THREE.MeshStandardMaterial({color:0x3a2a20,emissive:0xff5a1a,emissiveIntensity:.9,roughness:.9});
-function meteor(x,z){const tp={x,z};collideCircle(tp,1);x=tp.x;z=tp.z;warnMark(x,z,5,1.5);const m=new THREE.Mesh(rocketGeo,meteorMat);m.scale.setScalar(3.4);scene.add(m);
+function meteor(x,z){const tp={x,z};collideCircle(tp,1);x=tp.x;z=tp.z;warnMark(x,z,5,1.5);
+ {const bm=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:0xff4a1a,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));bm.position.set(x,30,z);scene.add(bm);fx.push({m:bm,t:0,dur:1.5,type:'warn'});}
+ const m=new THREE.Mesh(rocketGeo,meteorMat);m.scale.setScalar(3.4);scene.add(m);
  const sx=x+rand(-14,14),sz=z+rand(-14,14);meteors.push({m,x,z,sx,sz,t:0,dur:1.5});}
 function updateMeteors(dt){for(let i=meteors.length-1;i>=0;i--){const q=meteors[i];q.t+=dt;const k=Math.min(1,q.t/q.dur);q.m.position.set(q.sx+(q.x-q.sx)*k,75*(1-k)+.5,q.sz+(q.z-q.sz)*k);
  smoke(q.m.position,{size:1.4,grow:3,life:1.1,color:0x6a5a4a,alpha:.4,spread:.3,rise:.3});
@@ -1478,6 +1497,7 @@ function updateThreats(){const list=[];{let aim=null;for(const e of enemies)if(e
   let t=null;if((e.type=='bomber'||e.type=='splitter')&&d<38)t='bomber';else if((e.type=='brute'||e.boss)&&d<70)t='brute';else if((e.type=='flyer'||e.type=='stormimp')&&e.st2=='dive')t='flyer';
   else if((e.type=='trike'&&e.st!='walk')||e.type=='bull'&&d<60||e.type=='raptor'&&d<16||e.type=='spider'&&d<12)t=e.type=='raptor'||e.type=='spider'?'bomber':'brute';
   else if(e.type=='sniper'&&(e.ph=='aim'||e.perch))t='sniper';else if(e.type=='summoner')t='summoner';else if(e.bounty)t='bounty';
+  if(!t&&d<13&&!e.passive&&e.entering<=0)t='near';
   if(t){const a=relAngle(e.g.position);if(Math.abs(a)>.62)list.push({a,d:t=='summoner'||t=='bounty'?Math.min(d,30):t=='sniper'?Math.min(d,12):d,t});}}
  for(const s of eShots){if(Math.random()<.5)emit(s.m.position,1,0xff7a20,1,.18,.25,-3,0);const p=s.m.position;const d=Math.hypot(p.x-P.pos.x,p.z-P.pos.z);if(d<25){const a=relAngle(p);if(Math.abs(a)>.62)list.push({a,d,t:'shot'});}}
  if(WEAPONS[0].ammo<=5&&WEAPONS[1].ammo<=40&&WEAPONS[4].ammo+WEAPONS[4].clip<=10)for(const k of pickups)if(k.kind=='ammo'){const a=relAngle(k.g.position);if(Math.abs(a)>.62)list.push({a,d:6,t:'ammo'});}
@@ -1485,7 +1505,23 @@ function updateThreats(){const list=[];{let aim=null;for(const e of enemies)if(e
  chevs.forEach((c,i)=>{const t=list[i];if(!t||state!='play'){c.hidden=true;return;}c.hidden=false;
   const rx=W/2-34,ry=H/2-34;const x=W/2+Math.sin(t.a)*rx,y=H/2-Math.cos(t.a)*ry;
   c.className='chev '+t.t;c.style.left=x+'px';c.style.top=y+'px';c.style.transform='rotate('+t.a+'rad) scale('+(1.3-t.d/60).toFixed(2)+')';c.style.opacity=clamp(1-t.d/45,.25,.75);});}
-function showHitDir(from){if(!from)return;const a=relAngle(from);const el=$('hitdir');el.style.transition='none';el.style.background='radial-gradient(ellipse 40% 45% at '+(50+Math.sin(a)*62).toFixed(1)+'% '+(50-Math.cos(a)*62).toFixed(1)+'%, rgba(190,25,15,.55), rgba(190,25,15,0))';el.style.opacity=1;
+// radar: you at the centre, facing up; 60 m range; anything further sits dim on the rim
+const RAD={c:$('radar'),t:0,range:60};RAD.x=RAD.c.getContext('2d');
+function updateRadar(rdt){RAD.t-=rdt;if(RAD.t>0)return;RAD.t=.07;const x=RAD.x,S=336,C=S/2,R=150,k=R/RAD.range,cy=Math.cos(P.yaw),sy=Math.sin(P.yaw);
+ x.clearRect(0,0,S,S);x.beginPath();x.arc(C,C,R,0,6.283);x.fillStyle='rgba(10,12,10,.55)';x.fill();x.lineWidth=3;x.strokeStyle='rgba(245,233,211,.55)';x.stroke();
+ x.lineWidth=1;x.strokeStyle='rgba(245,233,211,.16)';x.beginPath();x.arc(C,C,R/2,0,6.283);x.moveTo(C-R,C);x.lineTo(C+R,C);x.moveTo(C,C-R);x.lineTo(C,C+R);x.stroke();
+ x.fillStyle='rgba(245,233,211,.10)';x.beginPath();x.moveTo(C,C);x.arc(C,C,R,-Math.PI/2-.68,-Math.PI/2+.68);x.closePath();x.fill(); // what you can see
+ const at=(wx,wz)=>{const dx=wx-P.pos.x,dz=wz-P.pos.z;let lr=(dx*cy-dz*sy)*k,lf=(-dx*sy-dz*cy)*k;const l=Math.hypot(lr,lf);let far=false;if(l>R-6){lr*=(R-6)/l;lf*=(R-6)/l;far=true;}return [C+lr,C-lf,far];};
+ for(const f of fx)if(f.type=='warn'&&f.m.scale.x>3){const[px,py]=at(f.m.position.x,f.m.position.z);x.strokeStyle='#ffb020';x.lineWidth=3;x.beginPath();x.arc(px,py,Math.max(5,f.m.scale.x*k),0,6.283);x.stroke();}
+ for(const q of pickups){const[px,py,far]=at(q.g.position.x,q.g.position.z);if(far)continue;x.fillStyle=q.kind=='ammo'?'#9be36a':q.kind=='health'?'#ffffff':'#7ac8ff';x.fillRect(px-4,py-4,8,8);}
+ for(const e of enemies){if(!e.alive)continue;const[px,py,far]=at(e.g.position.x,e.g.position.z);const r=e.boss?11:TYPES[e.type].h>3.5?7:5;x.globalAlpha=far?.45:1;x.fillStyle=e.bounty?'#ffd040':e.passive?'#ff9a30':'#ff3a22';
+  x.beginPath();x.arc(px,py,r,0,6.283);x.fill();if(e.g.position.y>1.2){x.lineWidth=2;x.strokeStyle='#fff';x.stroke();}}
+ x.globalAlpha=1;{const[nx,ny]=[C+(-(-1)*sy)*0,0];const lr=(0*cy-(-1)*sy),lf=(-0*sy-(-1)*cy);x.fillStyle='#ffb347';x.font='bold 22px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('N',C+lr*(R-14),C-lf*(R-14));}
+ x.fillStyle='#fff';x.beginPath();x.moveTo(C,C-11);x.lineTo(C+8,C+8);x.lineTo(C,C+4);x.lineTo(C-8,C+8);x.closePath();x.fill();}
+// damage arcs: a red arrow around the crosshair that keeps pointing at whatever hurt you, even as you turn
+const hitArcs=[];for(let k=0;k<5;k++){const b=document.createElement('b');b.appendChild(document.createElement('i'));$('hitarcs').appendChild(b);hitArcs.push({el:b,t:0,pos:new THREE.Vector3()});}
+function updateHitArcs(rdt){for(const h of hitArcs){if(h.t<=0)continue;h.t-=rdt;if(h.t<=0){h.el.style.opacity=0;continue;}h.el.style.opacity=Math.min(1,h.t/.6);h.el.style.transform='rotate('+relAngle(h.pos).toFixed(3)+'rad)';}}
+function showHitDir(from){if(!from)return;if(Math.hypot(from.x-P.pos.x,from.z-P.pos.z)>1.2){let h=hitArcs.find(q=>q.t>0&&q.pos.distanceToSquared(from)<9)||hitArcs.reduce((m,q)=>q.t<m.t?q:m);h.pos.copy(from);h.t=1.6;}const a=relAngle(from);const el=$('hitdir');el.style.transition='none';el.style.background='radial-gradient(ellipse 40% 45% at '+(50+Math.sin(a)*62).toFixed(1)+'% '+(50-Math.cos(a)*62).toFixed(1)+'%, rgba(190,25,15,.55), rgba(190,25,15,0))';el.style.opacity=1;
  requestAnimationFrame(()=>{el.style.transition='opacity .7s';el.style.opacity=0;});}
 
 /* ---------- HUD ---------- */
@@ -1604,7 +1640,7 @@ function step(dt,rdt){
    if(want&&spin>=1&&cool<=0&&switchT<=0)fire();else if(mouseDown&&W.ammo<=0&&cool<=0)fire();}
   else if(mouseDown&&cool<=0&&switchT<=0)fire();
   if(comboT>0){comboT-=dt;if(comboT<=0){combo=0;updateHud();}}
-  updateEnemies(dt);updateShots(dt);updateNades(dt);updateWaves(dt);updatePickups(dt);updateThreats();updateCompass(rdt);updateEvents(dt);updateShocks(dt);updateMeteors(dt);updatePads(dt);}
+  updateEnemies(dt);updateShots(dt);updateNades(dt);updateWaves(dt);updatePickups(dt);updateThreats();updateCompass(rdt);updateRadar(rdt);updateHitArcs(rdt);updateEvents(dt);updateShocks(dt);updateMeteors(dt);updatePads(dt);}
  else{updateEnemies(dt*.3);}
  updateRain(rdt);updateParts(dt);updateFx(dt);updateCorpses(dt);updateScorch(dt);updateDecals(dt);updateSmoke(dt);updateArc();followSun();updateStorm(dt);skyDome.position.copy(camera.position);
  fovKick*=Math.pow(.002,rdt);{const want=state=='play'&&adsDown&&switchT<=0&&reloadT<=0&&cur!=2;ads=clamp(ads+(want?1:-1)*rdt*7,0,1);}
@@ -1665,6 +1701,6 @@ async function fxDemo(){await loadLevel(1);window.__noPause=true;begin();P.hp=1e
  animProbe(t){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const out=[];const b0=bones.map(b=>b.quaternion.clone());
  for(let f=0;f<10;f++){e.mixer.update(.06);e.g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(e.model,true);let ch=0;bones.forEach((b,k)=>ch=Math.max(ch,1-Math.abs(b.quaternion.dot(b0[k]))));out.push([+bb.min.y.toFixed(2),+bb.max.y.toFixed(2),+ch.toFixed(3)]);}
  const r={clip:e.cur&&e.cur.getClip().name,dur:e.cur&&+e.cur.getClip().duration.toFixed(2),bones:bones.length,y0:+e.model.position.y.toFixed(2),frames:out};e.alive=false;removeEnemyObj(e);return JSON.stringify(r);},bbox(n){MODELS[n].scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(MODELS[n].scene,true);return [bb.min.toArray().map(v=>+v.toFixed(2)),bb.max.toArray().map(v=>+v.toFixed(2)),MODELS[n].animations.map(a=>a.name.split('|').pop())];},get PK(){return PK},pickCard,openCards,shockwave,meteor,get EVENT(){return EVENT},setEvent(v){EVENT=v},
- fxTest(){const p=new THREE.Vector3(P.pos.x,1,P.pos.z-12);explode(p,7.5,0,false,null);smoke(new THREE.Vector3(P.pos.x+4,1.5,P.pos.z-8),{n:4,size:2,grow:3,life:3,color:0xa89580,alpha:.32});},pickups,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs.length,objs:scene.children.length}),get shots(){return shots},get pond(){return POND},get slowMo(){return slowMo},get rushT(){return rushT},need(types){return Promise.all(types.map(t=>loadModel(TYPES[t].model)));},get headshots(){return headshots},get sunDir(){return [SUN.x,SUN.y,SUN.z]},radio,ads(v){adsDown=!!v},reload:startReload,grenade:throwGrenade,get reloadT(){return reloadT},get grenades(){return grenades},get adsK(){return ads},get cur(){return cur},nades,get used(){return [...USED]},get missing(){return [...MISSING]},clearUsed(){USED.clear();MISSING.clear();},levelStats(){let m=0,t=0;levelRoot.traverse(o=>{if(o.isMesh){m++;t+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;}});return {m,t:Math.round(t),col:colliders.length,barrels:barrels.length};},get hits(){return hits},selectWeapon};
+ fxTest(){const p=new THREE.Vector3(P.pos.x,1,P.pos.z-12);explode(p,7.5,0,false,null);smoke(new THREE.Vector3(P.pos.x+4,1.5,P.pos.z-8),{n:4,size:2,grow:3,life:3,color:0xa89580,alpha:.32});},pickups,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs.length,objs:scene.children.length}),get shots(){return shots},colliders,inWalls(){let n=0;for(const e of enemies){if(!e.alive||TYPES[e.type].fly||e.g.position.y>1.5||e.perch||e.entering>0)continue;const p=e.g.position;for(const c of colliders){if(c.box&&!c.dead&&(c.h||99)>3&&p.x>c.box[0]+.4&&p.x<c.box[1]-.4&&p.z>c.box[2]+.4&&p.z<c.box[3]-.4){n++;break;}}}return n;},HURTS,get pond(){return POND},get slowMo(){return slowMo},get rushT(){return rushT},need(types){return Promise.all(types.map(t=>loadModel(TYPES[t].model)));},get headshots(){return headshots},get sunDir(){return [SUN.x,SUN.y,SUN.z]},radio,ads(v){adsDown=!!v},reload:startReload,grenade:throwGrenade,get reloadT(){return reloadT},get grenades(){return grenades},get adsK(){return ads},get cur(){return cur},nades,get used(){return [...USED]},get missing(){return [...MISSING]},clearUsed(){USED.clear();MISSING.clear();},levelStats(){let m=0,t=0;levelRoot.traverse(o=>{if(o.isMesh){m++;t+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;}});return {m,t:Math.round(t),col:colliders.length,barrels:barrels.length};},get hits(){return hits},selectWeapon};
 }
 </script>
