@@ -213,8 +213,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildGuns} from './guns.js?v=49';
-import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=49';
+import {buildGuns} from './guns.js?v=50';
+import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=50';
 {
 const $=id=>document.getElementById(id);
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -348,6 +348,7 @@ const SFX={
  pickup(kind){play(kind=='armor'?'powerup':kind=='ammo'?'weapon':'pickup',{vol:.8,rev:.05});},
  empty(){tone(300,280,.04,.25,'square');},
  crit(){tone(1700,950,.05,.1,'triangle');},
+ waspWarn(){tone(700,1500,.5,.07,'sawtooth');},
  kill(){tone(560,250,.08,.16,'triangle');},
  snipeHit(){sub(85,.2,.55);play('hit2',{vol:.9,rate:.78});play('gib',{vol:.45,rate:1.3});},
  bolt(){play('pump',{vol:.6,rate:1.25});},
@@ -564,7 +565,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='49';const VQ='?v='+BUILD;
+const BUILD='50';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech','alien_large','alien_small','alien_mite'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -826,7 +827,7 @@ const LEVELS=[
  {name:'THE LOST OASIS',music:'oasis',desc:'Something old still lives by the water. Raptors in packs, charging horns, a stampede, and the Tyrant. Ride the jump pads over the pond.',build:buildLevel4,props:['Barrel_01','Bush_1','CactusFlowers_2','Cactus_1','Cactus_2','Cactus_3','CommonTree_Dead_1','Grass','Lilypad','PalmTree_1','PalmTree_2','PalmTree_3','PalmTree_4','Plant_1','Rock_1','Rock_2','Rock_3','TreeStump','WoodLog','boulder_01','namaqualand_boulder_02','namaqualand_boulder_05','sand_rocks_small_01'],ground:'rocks',start:[0,40,0],
   light:{sun:0xfff0dc,int:2.2,exp:.92,fog:[0xd8c0a0,120,540]},events:['bounty','frenzy','meteors','stampede'],force:{3:'stampede'},
   rush:{4:{sec:50,rate:.45,types:['raptor','spider','spider']}},tag:['CLEVER GIRLS','THE SWARM','HORNS','STAMPEDE','THE PACK','EVERYTHING AT ONCE','THE TYRANT'],
-  waves:[[['raptor',6,1.2],['spider',12,.6]],[['wasp',12,.5],['spider',16,.5],['grunt',4,2]],[['trike',2,6],['raptor',9,1],['bomber',16,.6]],[['spider',24,.4],['wasp',12,.8],['sniper',2,5]],
+  waves:[[['raptor',6,1.2],['spider',12,.6]],[['spider',14,.55],['wasp',8,.9,10],['grunt',2,3,16]],[['trike',2,6],['raptor',9,1],['bomber',16,.6]],[['spider',24,.4],['wasp',12,.8],['sniper',2,5]],
    [['trike',3,5],['summoner',2,4],['raptor',12,.9]],[['spider',36,.25],['bomber',30,.35],['raptor',9,1.2],['wasp',16,.6],['shield',2,6]],[['trex',1,1],['raptor',6,4],['spider',18,1]]]},
  {name:'NEON DISTRICT',music:'neon',desc:'Rain, neon and two streets crossing in the dark. Snipers on the rooftops, robots in the alleys, and the Enforcer at the end of the night.',build:buildLevel5,props:['Barrel_01','concrete_road_barrier','k_ambulance','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC_Stacked','q_Antenna_1','q_Light_Street_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'],ground:'asphalt',night:1,start:[0,30,0],
   streets:1,light:{sun:0x8fa4d8,int:.32,exp:.95,fog:[0x0b0f1a,30,200],hemi:[0x6f80b0,0x140f0c,.28]},events:['bounty','frenzy'],
@@ -1011,7 +1012,7 @@ function enemyShoot(e,yawOff=0,o={}){const from=e.g.position.clone();from.y+=e.h
  // lead the target slightly
  to.addScaledVector(P.vel,.35);const dir=to.sub(from).normalize();if(yawOff)dir.applyAxisAngle(UPV,yawOff);
  const m=new THREE.Mesh(eShotGeo,o.cyan?eShotMatC:eShotMat);const gw=new THREE.Sprite(o.cyan?eGlowC:eGlowSprite);gw.scale.setScalar(1.1);m.add(gw);m.position.copy(from);m.scale.setScalar(o.big||1);scene.add(m);
- eShots.push({m,v:dir.multiplyScalar(o.speed||22),life:5,whiz:false,dmg:o.dmg||12,big:o.big||1});if(!o.quiet)(o.cyan?SFX.zap(from):SFX.shotE(from));}
+ eShots.push({m,v:dir.multiplyScalar(o.speed||22),life:5,whiz:false,dmg:o.dmg||12,big:o.big||1,from:e.g.position.clone()});if(!o.quiet)(o.cyan?SFX.zap(from):SFX.shotE(from));}
 
 const rockets=[];const rocketGeo=new THREE.SphereGeometry(.26,14,10),rocketMat=new THREE.MeshStandardMaterial({color:0x2a2622,metalness:.8,roughness:.45,emissive:0x331100});
 const G_SHELL=24,V_SHELL=40;
@@ -1174,8 +1175,8 @@ function updatePickups(dt){for(let i=pickups.length-1;i>=0;i--){const k=pickups[
 let perchT=0,cardsDue=false,snap=null,dryT=0,wave=-1,queue=[],spawnT=0,waveState='idle',waveTimer=0,elapsed=0;
 function frontGate(){let best=0,bd=-9;const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);SPAWNS.forEach(({x,z},k)=>{x-=P.pos.x;z-=P.pos.z;const d=(x*fx+z*fz)/Math.hypot(x,z)+rand(0,.9);if(d>bd){bd=d;best=k;}});return best;}
 function startWave(i){wave=i;queue=[];snap={score,kills,ammo:WEAPONS.map(w=>w.ammo),ar:P.ar,pk:{...PK}};rollEvent(i);
- WAVES[i].forEach(([type,n,gap])=>{const big=type=='boss'||TYPES[type].heavy||type=='summoner'||type=='shield';n=Math.max(1,Math.round(n*(big?Math.min(1,DIFF.count):DIFF.count)));gap/=Math.sqrt(DIFF.count);
-  const pk_=PACK[type]||1;let gate=0;for(let k=0;k<n;k++){if(k%pk_==0)gate=i<2&&LEVEL==0?frontGate():Math.floor(rand(0,SPAWNS.length));const at=Math.floor(k/pk_)*gap*pk_+(k%pk_)*.18+rand(0,gap*.3);queue.push({type,at,gate});}});
+ WAVES[i].forEach(([type,n,gap,delay=0])=>{const big=type=='boss'||TYPES[type].heavy||type=='summoner'||type=='shield';n=Math.max(1,Math.round(n*(big?Math.min(1,DIFF.count):DIFF.count)));gap/=Math.sqrt(DIFF.count);
+  const pk_=PACK[type]||1;let gate=0;for(let k=0;k<n;k++){if(k%pk_==0)gate=i<2&&LEVEL==0?frontGate():Math.floor(rand(0,SPAWNS.length));const at=delay+Math.floor(k/pk_)*gap*pk_+(k%pk_)*.18+rand(0,gap*.3);queue.push({type,at,gate});}});
  queue.sort((a,b)=>a.at-b.at);spawnT=0;waveState='fight';STORM.on=!!(LEVELS[LEVEL].storm||[]).includes(i);SFX.waveStart();musicPlay(i==WAVES.length-1?'boss':levelTrack());MUS.target=.55+i*.09;
  RUSH=(LEVELS[LEVEL].rush||{})[i]||null;rushT=RUSH?RUSH.sec:0;rushGap=3;
  if(RUSH){flashBanner('HORDE RUSH','UNLIMITED AMMO · HOLD THE TRIGGER DOWN',3);if(autoSide&&cur==3)selectWeapon(1);}else flashBanner('WAVE '+(i+1),(LEVELS[LEVEL].tag[i]||'')+(EVENT?' · '+EVENTS[EVENT]:''),2.2);waveN=queue.length;
@@ -1213,7 +1214,8 @@ function navPoint(p,e){if(!LEVELS[LEVEL].streets)return null;const SWN=13;const 
  if(Math.abs(ml)>SWN&&(Math.abs(pl)<=SWN||Math.abs(pa-ma)>4||pl*ml<0))return mk(arm,ma,clamp(ml,-SWN+3,SWN-3)); // I am in an alley and the player is not in it: step back out
  if(Math.abs(pl)>SWN&&Math.abs(pa-ma)>3)return mk(arm,pa,clamp(pl,-SWN+3,SWN-3));
  return null;}
-function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.alive&&!o.passive).length<=2;
+let waspBusy=0,waspCnt=0,waspNew=0;
+function updateEnemies(dt){waspBusy=waspCnt;waspCnt=0;waspNew=0;const stragglers=!queue.length&&enemies.filter(o=>o.alive&&!o.passive).length<=2;
  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(!e.alive){enemies.splice(i,1);continue;}
   e.t+=dt;const p=e.g.position;const to=tmpV.set(P.pos.x-p.x,0,P.pos.z-p.z);const dist=to.length();to.normalize();
   if(e.ai=='bull'){updateBull(e,dt);continue;}
@@ -1319,10 +1321,12 @@ function updateEnemies(dt){const stragglers=!queue.length&&enemies.filter(o=>o.a
   else if(e.ai=='spider'){mv.copy(to).multiplyScalar(spd);const side=new THREE.Vector3(-to.z,0,to.x);mv.addScaledVector(side,Math.sin(e.t*3+i)*2.5);
    if(dist<e.r+1.2&&e.attackT<=0&&(e.hitCd||0)<=0){playAct(e,'attack',.06);e.attackT=.5;e.swing=.2;}
    if(e.swing>0){e.swing-=dt;if(e.swing<=0&&dist<e.r+1.7){hurtPlayer(8,p);e.hitCd=.9;}}e.hitCd=(e.hitCd||0)-dt;if(e.attackT>0)mv.multiplyScalar(.2);}
-  else if(e.ai=='wasp'){if(e.dart){const dv=new THREE.Vector3(P.pos.x-p.x,P.pos.y+1.3-p.y,P.pos.z-p.z);const l=dv.length();dv.multiplyScalar(spd*1.3/Math.max(l,.01));mv.set(dv.x,0,dv.z);p.y+=dv.y*dt;e.dart-=dt;
-     if(l<1.3){hurtPlayer(6,p);e.dart=0;}if(e.dart<=0){e.dart=0;e.wcd=rand(1.8,3.2);}}
+  else if(e.ai=='wasp'){if(e.dart){const l=Math.hypot(P.pos.x-p.x,P.pos.y+1.3-p.y,P.pos.z-p.z);const dv=e.dv,v=spd*1.5;mv.set(dv.x*v,0,dv.z*v);p.y+=dv.y*v*dt;e.dart-=dt;
+     waspCnt++;if(l<1.25){hurtPlayer(4,p);e.dart=0;}if(e.dart<=0){e.dart=0;e.wcd=rand(2.6,4.6);}}
+   else if(e.wind>0){ // wind-up: hangs in front of you, flashing, before it dives
+    waspCnt++;e.wind-=dt;mv.set(0,0,0);p.y+=Math.sin(e.t*40)*.02;e.flash=.06;if(e.wind<=0){e.dart=.9;e.dv=new THREE.Vector3(P.pos.x-p.x,P.pos.y+1.3-p.y,P.pos.z-p.z).normalize();playAct(e,'attack',.05);}}
    else{{const a0=Math.atan2(-Math.cos(P.yaw),-Math.sin(P.yaw))+Math.sin(e.t*.6+i*1.7)*1.25;let da=a0-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));e.ang+=clamp(da,-1,1)*dt*2.2;}const R2=7+(i%4)*1.5;const tx=P.pos.x+Math.cos(e.ang)*R2,tz=P.pos.z+Math.sin(e.ang)*R2;mv.set(tx-p.x,0,tz-p.z);const l=mv.length();if(l>.01)mv.multiplyScalar(Math.min(spd,l*2.5)/l);
-    const alt=1.9+Math.sin(e.t*2.3+i)*.6;p.y+=(alt-p.y)*Math.min(1,dt*3);e.wcd=(e.wcd??rand(1,3))-dt;if(e.wcd<=0&&dist<14&&e.entering<=0&&state=='play'){e.dart=1.2;playAct(e,'attack',.05);}}
+    const alt=1.9+Math.sin(e.t*2.3+i)*.6;p.y+=(alt-p.y)*Math.min(1,dt*3);e.wcd=(e.wcd??rand(1.5,4))-dt;if(e.wcd<=0&&dist<14&&e.entering<=0&&state=='play'&&waspBusy+waspNew<2&&Math.abs(relAngle(p))<.7){e.wind=.6;waspNew++;SFX.waspWarn();}}
    p.y=clamp(p.y,.6,7);}
   else if(e.ai=='trike'||e.ai=='trex'){const boss=e.ai=='trex';const enr=boss&&e.hp<e.max*.5;if(enr&&!e.enr){e.enr=true;flashBanner('THE TYRANT IS ENRAGED','',1.4,true);SFX.roar(p);}
    e.st=e.st||'walk';e.cd=(e.cd??rand(2,4))-dt;
@@ -1474,7 +1478,7 @@ function updateShots(dt){
   const pp=s.m.position;const dx=pp.x-P.pos.x,dz=pp.z-P.pos.z,dy=pp.y-(P.pos.y+1);
   let dead=s.life<=0||pp.y<0;
   if(!s.whiz&&dx*dx+dz*dz<12){s.whiz=true;SFX.whiz();}
-  if(dx*dx+dz*dz<.8*s.big*s.big&&Math.abs(dy)<1.2*s.big){hurtPlayer(s.dmg,pp);dead=true;}
+  if(dx*dx+dz*dz<.8*s.big*s.big&&Math.abs(dy)<1.2*s.big){hurtPlayer(s.dmg,s.from||pp);dead=true;}
   if(!dead&&rayWorld(pp,new THREE.Vector3(0,-1,0),.01)<.01)dead=true;
   for(const c of colliders){if(dead)break;if(c.box){if(pp.x>c.box[0]&&pp.x<c.box[1]&&pp.z>c.box[2]&&pp.z<c.box[3]&&pp.y<12)dead=true;}else if((pp.x-c.x)**2+(pp.z-c.z)**2<c.r*c.r&&pp.y<11)dead=true;}
   if(dead){emit(pp,5,0xff8a30,5,.07,.35,10,3);smoke(pp,{n:2,size:.5,grow:1.2,life:.6,color:0x6a5a4a,alpha:.35,rise:.6});scene.remove(s.m);eShots.splice(i,1);}}
