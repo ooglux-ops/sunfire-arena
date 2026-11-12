@@ -213,8 +213,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildGuns} from './guns.js?v=50';
-import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=50';
+import {buildGuns} from './guns.js?v=51';
+import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=51';
 {
 const $=id=>document.getElementById(id);
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -565,7 +565,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='50';const VQ='?v='+BUILD;
+const BUILD='51';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech','alien_large','alien_small','alien_mite'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -575,7 +575,7 @@ const DIRS={};MODEL_FILES.forEach(n=>DIRS[n]='models');PH_FILES.forEach(n=>DIRS[
 // models are fetched per arena: only what the selected arena needs is downloaded
 const MP={};
 function loadModel(n){if(MP[n])return MP[n];const d=DIRS[n];if(!d){console.error('unknown model',n);return MP[n]=Promise.resolve();}LD.n++;
- return MP[n]=fetch('assets/'+d+'/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{const rm=[];g.scene.traverse(o=>{if(o.isLight)rm.push(o);});rm.forEach(o=>o.parent.remove(o));MODELS[n]=g;prog();}).catch(err=>{console.error('model',n,err);prog();});}
+ return MP[n]=fetch('assets/'+d+'/'+n+'.json'+VQ).then(r=>r.json()).then(j=>gl.parseAsync(toGLB(j),'')).then(g=>{const rm=[];g.scene.traverse(o=>{if(o.isLight)rm.push(o);});rm.forEach(o=>o.parent.remove(o));g.scene.traverse(o=>{if(!o.isSkinnedMesh)return;const w=o.geometry.attributes.skinWeight;if(!w)return;let fixed=0;for(let i=0;i<w.count;i++){const t=w.getX(i)+w.getY(i)+w.getZ(i)+w.getW(i);if(!(t>0)||!isFinite(t)){w.setXYZW(i,1,0,0,0);fixed++;}}if(fixed){w.needsUpdate=true;o.boundingBox=null;o.boundingSphere=null;}});MODELS[n]=g;prog();}).catch(err=>{console.error('model',n,err);prog();});}
 const SPAWNS_FROM={splitter:['bomber'],summoner:['bomber'],queen:['bomber'],trex:['raptor'],mech:['drone']};
 function levelModels(i){const D=LEVELS[i];const set=new Set(D.props);set.add('ammo_box');
  const add=t=>{if(t=='boss')t='brute';set.add(TYPES[t].model);(SPAWNS_FROM[t]||[]).forEach(add);};add('bomber');add('grunt');
@@ -964,7 +964,8 @@ function buildEnemy(type){const T=TYPES[type];const src=MODELS[T.model];const g=
  if(ORGANIC[type]||ORGANIC[T.model])prepCreature(T.model);
  const model=SkeletonUtils.clone(src.scene);
  // fit model height
- if(!T.scale){src.scene.updateMatrixWorld(true);let bb=new THREE.Box3().setFromObject(src.scene,true);if(!isFinite(bb.max.y))bb=new THREE.Box3().setFromObject(src.scene);T.scale=T.h/(bb.max.y-bb.min.y);T.y0=-bb.min.y*T.scale;}
+ if(!T.scale){src.scene.updateMatrixWorld(true);let bb=new THREE.Box3().setFromObject(src.scene,true);if(!isFinite(bb.max.y))bb=new THREE.Box3().setFromObject(src.scene);T.scale=T.h/(bb.max.y-bb.min.y);T.y0=-bb.min.y*T.scale;
+  if(!isFinite(T.scale)||!isFinite(T.y0)||T.scale<=0){console.error('bad model bounds',type);T.scale=1;T.y0=0;}}
  model.scale.setScalar(T.scale);model.position.y=T.y0;g.add(model);
  const mats=[];const org=ORGANIC[T.model];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();if(T.robot){o.material.metalness=.55;o.material.roughness=.38;}if(org){o.geometry.computeBoundingBox();const sz=o.geometry.boundingBox.getSize(new THREE.Vector3());organic(o.material,org[0]/Math.max(sz.x,sz.y,sz.z,1e-3)*2.2,org[1]);}addRim(o.material);mats.push(o.material);}});
  const bl=blob(T.r*2.6);g.add(bl);
@@ -1721,6 +1722,6 @@ async function fxDemo(){await loadLevel(1);window.__noPause=true;begin();P.hp=1e
  animProbe(t){const e=spawnEnemy(t,0,{x:0,z:0});e.entering=0;const bones=[];e.model.traverse(o=>{if(o.isBone)bones.push(o);});const out=[];const b0=bones.map(b=>b.quaternion.clone());
  for(let f=0;f<10;f++){e.mixer.update(.06);e.g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(e.model,true);let ch=0;bones.forEach((b,k)=>ch=Math.max(ch,1-Math.abs(b.quaternion.dot(b0[k]))));out.push([+bb.min.y.toFixed(2),+bb.max.y.toFixed(2),+ch.toFixed(3)]);}
  const r={clip:e.cur&&e.cur.getClip().name,dur:e.cur&&+e.cur.getClip().duration.toFixed(2),bones:bones.length,y0:+e.model.position.y.toFixed(2),frames:out};e.alive=false;removeEnemyObj(e);return JSON.stringify(r);},bbox(n){MODELS[n].scene.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(MODELS[n].scene,true);return [bb.min.toArray().map(v=>+v.toFixed(2)),bb.max.toArray().map(v=>+v.toFixed(2)),MODELS[n].animations.map(a=>a.name.split('|').pop())];},get PK(){return PK},pickCard,openCards,shockwave,meteor,get EVENT(){return EVENT},setEvent(v){EVENT=v},
- fxTest(){const p=new THREE.Vector3(P.pos.x,1,P.pos.z-12);explode(p,7.5,0,false,null);smoke(new THREE.Vector3(P.pos.x+4,1.5,P.pos.z-8),{n:4,size:2,grow:3,life:3,color:0xa89580,alpha:.32});},pickups,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs.length,objs:scene.children.length}),get shots(){return shots},colliders,inWalls(){let n=0;for(const e of enemies){if(!e.alive||TYPES[e.type].fly||e.g.position.y>1.5||e.perch||e.entering>0)continue;const p=e.g.position;for(const c of colliders){if(c.box&&!c.dead&&(c.h||99)>3&&p.x>c.box[0]+.4&&p.x<c.box[1]-.4&&p.z>c.box[2]+.4&&p.z<c.box[3]-.4){n++;break;}}}return n;},HURTS,get pond(){return POND},get slowMo(){return slowMo},get rushT(){return rushT},need(types){return Promise.all(types.map(t=>loadModel(TYPES[t].model)));},get headshots(){return headshots},get sunDir(){return [SUN.x,SUN.y,SUN.z]},radio,ads(v){adsDown=!!v},reload:startReload,grenade:throwGrenade,get reloadT(){return reloadT},get grenades(){return grenades},get adsK(){return ads},get cur(){return cur},nades,get used(){return [...USED]},get missing(){return [...MISSING]},clearUsed(){USED.clear();MISSING.clear();},levelStats(){let m=0,t=0;levelRoot.traverse(o=>{if(o.isMesh){m++;t+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;}});return {m,t:Math.round(t),col:colliders.length,barrels:barrels.length};},get hits(){return hits},selectWeapon};
+ fxTest(){const p=new THREE.Vector3(P.pos.x,1,P.pos.z-12);explode(p,7.5,0,false,null);smoke(new THREE.Vector3(P.pos.x+4,1.5,P.pos.z-8),{n:4,size:2,grow:3,life:3,color:0xa89580,alpha:.32});},pickups,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs.length,objs:scene.children.length}),get shots(){return shots},MODELS,TYPES,colliders,inWalls(){let n=0;for(const e of enemies){if(!e.alive||TYPES[e.type].fly||e.g.position.y>1.5||e.perch||e.entering>0)continue;const p=e.g.position;for(const c of colliders){if(c.box&&!c.dead&&(c.h||99)>3&&p.x>c.box[0]+.4&&p.x<c.box[1]-.4&&p.z>c.box[2]+.4&&p.z<c.box[3]-.4){n++;break;}}}return n;},HURTS,get pond(){return POND},get slowMo(){return slowMo},get rushT(){return rushT},need(types){return Promise.all(types.map(t=>loadModel(TYPES[t].model)));},get headshots(){return headshots},get sunDir(){return [SUN.x,SUN.y,SUN.z]},radio,ads(v){adsDown=!!v},reload:startReload,grenade:throwGrenade,get reloadT(){return reloadT},get grenades(){return grenades},get adsK(){return ads},get cur(){return cur},nades,get used(){return [...USED]},get missing(){return [...MISSING]},clearUsed(){USED.clear();MISSING.clear();},levelStats(){let m=0,t=0;levelRoot.traverse(o=>{if(o.isMesh){m++;t+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;}});return {m,t:Math.round(t),col:colliders.length,barrels:barrels.length};},get hits(){return hits},selectWeapon};
 }
 </script>
