@@ -213,8 +213,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildGuns} from './guns.js?v=51';
-import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=51';
+import {buildGuns} from './guns.js?v=52';
+import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=52';
 {
 const $=id=>document.getElementById(id);
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -565,7 +565,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='51';const VQ='?v='+BUILD;
+const BUILD='52';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech','alien_large','alien_small','alien_mite'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -794,9 +794,16 @@ function buildLevel5(){ // the Neon District: two streets crossing under the rai
  [[W+.6,W+.6,Math.PI*1.25],[-W-.6,-W-.6,Math.PI*.25],[W+.6,-W-.6,-Math.PI*.25],[-W-.6,W+.6,Math.PI*.75]].forEach(([x,z,r])=>placeProp('q_TrafficLight',x,z,5.2,{rot:r,col:.3}));
  // wrecked and parked cars
  const CARS=['k_taxi','k_police','k_sedan','k_suv','k_van','k_truck','k_ambulance','k_garbage-truck'];let ci=0;
- const car=(x,z,rot,col)=>{const o=placeProp(CARS[ci++%CARS.length],x,z,1.55,{rot,col});if(o){o.scale.z*=1.4;const c=o.userData.col;if(c&&c.box){o.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(o);c.box=[bb.min.x,bb.max.x,bb.min.z,bb.max.z];c.h=+(bb.max.y-.1).toFixed(2);}}return o;};
- for(let v=-96;v<=96;v+=16){if(Math.abs(v)<26)continue;if(Math.random()<.7)car(rand(9.6,10.4)*(v%32?1:-1),v,0,'box');if(Math.random()<.6)car(v,rand(9.6,10.4)*(v%32?-1:1),Math.PI/2,'box');}
- car(4,-3,.7,2.3);car(-6,5,2.2,2.3);car(-3,-30,.3,2.2);car(28,2,1.9,2.2);
+ // real-world length, width, height in metres. Each axis is fitted separately and the wheels are un-stretched so they stay round.
+ const CAR_DIM={k_taxi:[4.5,1.8,1.6,1],k_police:[4.8,1.85,1.55,1],k_sedan:[4.5,1.8,1.45,1],k_suv:[4.7,1.9,1.75,1],k_van:[5,1.95,2,0],k_truck:[5.6,2,1.9,1],k_ambulance:[5.8,2.1,2.5,0],'k_garbage-truck':[7.2,2.4,2.9,0]};
+ const car=(x,z,rot)=>{const name=CARS[ci++%CARS.length],[CL,CW,CH,hood]=CAR_DIM[name];const o=placeProp(name,x,z,CH,{rot});if(!o)return;
+  const sz=new THREE.Box3().setFromObject(MODELS[name].scene).getSize(new THREE.Vector3());const sy=o.scale.y,szc=CL/sz.z;o.scale.set(CW/sz.x,sy,szc);o.traverse(n=>{if(/^wheel/.test(n.name))n.scale.z*=sy/szc;});
+  // collision = a row of squares along the car, so it works at any angle; bonnet and boot are lower than the roof, so you can hop up in two steps
+  const n=Math.max(3,Math.round(CL/CW*1.6)),hw=CW/2,dx=Math.sin(rot),dz=Math.cos(rot);
+  for(let i=0;i<n;i++){const t=(i/(n-1)-.5)*(CL-CW),cx=x+dx*t,cz=z+dz*t,end=i==0||i==n-1;colliders.push({box:[cx-hw,cx+hw,cz-hw,cz+hw],h:+((hood&&end?.62:1)*CH-.06).toFixed(2)});}
+  return o;};
+ for(let v=-96;v<=96;v+=16){if(Math.abs(v)<26)continue;if(Math.random()<.7)car(rand(9.6,10.4)*(v%32?1:-1),v,0);if(Math.random()<.6)car(v,rand(9.6,10.4)*(v%32?-1:1),Math.PI/2);}
+ car(4,-3,.7);car(-6,5,2.2);car(-3,-30,.3);car(28,2,1.9);
  // clutter: cones, bins, barriers, fuel drums
  for(let k=0;k<14;k++){const a=rand(0,6.28);placeProp('k_cone',Math.cos(a)*rand(6,30),Math.sin(a)*rand(2,10)*(Math.random()<.5?1:-1),.65,{rot:rand(0,6)});}
  for(let k=0;k<12;k++){const v=rand(-100,100),side=Math.random()<.5?1:-1;const along=Math.random()<.5;placeProp(Math.random()<.5?'q_Trashcan_Large':'q_Trashcan_Green',along?side*14.5:v,along?v:side*14.5,1.2,{rot:rand(0,6),col:.6});}
@@ -1642,13 +1649,13 @@ function step(dt,rdt){
   const wish=fw.multiplyScalar(f).add(rt.multiplyScalar(s));if(wish.lengthSq()>0)wish.normalize();
   const inWater=!!POND&&P.pos.y<.3&&Math.hypot(P.pos.x-POND.x,P.pos.z-POND.z)<POND.r;
   if(inWater&&P.vel.x*P.vel.x+P.vel.z*P.vel.z>9&&Math.random()<dt*14)emit(new THREE.Vector3(P.pos.x+rand(-.4,.4),.15,P.pos.z+rand(-.4,.4)),3,0xbfe6e0,3,.07,.4,14,3);
-  const SPEED=13.5*(1+.1*pk('swift'))*(1-.25*ads)*(inWater?.62:1);const accel=P.onGround?12:3;
+  if(P.perchT>0)P.perchT-=dt;const SPEED=13.5*(1+.1*pk('swift'))*(1-.25*ads)*(inWater?.62:1)*(P.perchT>0?.15:1);const accel=P.onGround?12:3;
   P.dashCd-=dt;P.dashT-=dt;if(P.padT>0){P.padT-=dt;if(P.onGround)P.padT=0;}if(P.dashT<=0&&!(P.padT>0)){P.vel.x+=(wish.x*SPEED-P.vel.x)*Math.min(1,accel*dt);P.vel.z+=(wish.z*SPEED-P.vel.z)*Math.min(1,accel*dt);}
   P.calm+=dt;if(P.calm>4&&P.hp<DIFF.regen){P.hp=Math.min(DIFF.regen,P.hp+5*dt);updateHud();}
   $('dashbar').style.transform='scaleX('+clamp(1-P.dashCd/dashCdMax(),0,1)+')';if(P.inv>0)P.inv-=dt;
   if(P.dashT>0&&pk('ram'))for(const e of enemies){if(!e.alive||e.rammed===P.dashId)continue;const dx=e.g.position.x-P.pos.x,dz=e.g.position.z-P.pos.z;if(dx*dx+dz*dz<(e.r+1.3)**2&&Math.abs(e.g.position.y-P.pos.y)<2.5){e.rammed=P.dashId;damageEnemy(e,70,new THREE.Vector3(dx,0,dz).normalize(),'ram',2);addShake(.4,.15);SFX.hit();}}
   P.vel.y-=26*dt;P.pos.addScaledVector(P.vel,dt);
-  if(!P.onGround&&P.vel.y>-4){const lc=ledgeAt(P.pos,.6);if(lc&&((clamp(P.pos.x,lc.box[0],lc.box[1])-P.pos.x)*P.vel.x+(clamp(P.pos.z,lc.box[2],lc.box[3])-P.pos.z)*P.vel.z>=0)){P.pos.y=lc.h;P.vel.y=0;const cx=clamp(P.pos.x,lc.box[0]+.3,lc.box[1]-.3),cz=clamp(P.pos.z,lc.box[2]+.3,lc.box[3]-.3);P.pos.x+=(cx-P.pos.x)*.6;P.pos.z+=(cz-P.pos.z)*.6;SFX.land();}}
+  if(!P.onGround&&P.vel.y>-4){const lc=ledgeAt(P.pos,.6);if(lc&&((clamp(P.pos.x,lc.box[0],lc.box[1])-P.pos.x)*P.vel.x+(clamp(P.pos.z,lc.box[2],lc.box[3])-P.pos.z)*P.vel.z>=0)){P.pos.y=lc.h;P.vel.y=0;const cx=clamp(P.pos.x,lc.box[0]+.3,lc.box[1]-.3),cz=clamp(P.pos.z,lc.box[2]+.3,lc.box[3]-.3);P.pos.x+=(cx-P.pos.x)*.6;P.pos.z+=(cz-P.pos.z)*.6;P.vel.x=P.vel.z=0;P.perchT=.4;SFX.land();}} // stop dead on top, or a running jump carries you straight off the far side
   const fl=floorAt(P.pos.x,P.pos.z,P.pos.y);if(P.pos.y<=fl){if(!P.onGround&&P.vel.y<-8){SFX.land();kick.p-=.02;}P.pos.y=fl;P.vel.y=0;P.onGround=true;}else if(P.pos.y>fl+.02&&P.vel.y<0)P.onGround=false;
   collideCircle(P.pos,.6);
   const moving=wish.lengthSq()>0&&P.onGround;const pb=P.bob;P.bob+=dt*(moving?11:0);if(Math.floor(pb/Math.PI)!=Math.floor(P.bob/Math.PI))SFX.step();
