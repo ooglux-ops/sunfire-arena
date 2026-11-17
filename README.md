@@ -4,7 +4,7 @@ A fast horde-shooting arena game that runs in the browser (three.js).
 
 **Play:** https://ooglux-ops.github.io/sunfire-arena/
 
-Keyboard and mouse required. WASD to move, mouse to aim and fire, Space to jump, Shift to dash, 1–5 to switch weapons (scattergun, chaingun, mortar, rifle, sniper), Q for the sidearm (unlimited ammo), hold right mouse to aim down sights, R to reload, G to throw a grenade, hold E to cut a relay in the Pier 9 mission, headshots with the rifle, sniper or sidearm do double damage, Esc to pause (mouse and volume settings are there too).
+Keyboard and mouse required. WASD to move, mouse to aim and fire, Space to jump, Shift to dash, 1–5 to switch weapons (scattergun, chaingun, mortar, rifle, sniper), Q for the sidearm (unlimited ammo), hold right mouse to aim down sights, R to reload, G to throw a grenade, E to plant a charge in the Pier 9 mission, headshots with the rifle, sniper or sidearm do double damage, Esc to pause (mouse and volume settings are there too).
 
 Each arena downloads only the models it needs, and the 3D engine and fonts are served from this repo, so the game has no outside dependencies.
 
