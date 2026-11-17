@@ -169,7 +169,7 @@ button.card .lv{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:.1
     <h1>SUNFIRE ARENA</h1>
     <p id="lvldesc">Six waves come over the dunes. Keep moving, keep shooting, and never let the bombers reach you.</p>
     <p class="note" id="bestv"></p>
-    <div id="lvls" class="pick" role="group" aria-label="Arena"><button aria-pressed="true">I &middot; BASIN</button><button disabled>II &middot; CARAVAN</button><button disabled>III &middot; DEPOT</button><button disabled>IV &middot; OASIS</button><button disabled>V &middot; NEON</button><button disabled>VI &middot; PIER 9</button></div>
+    <div id="lvls" class="pick" role="group" aria-label="Arena"><button aria-pressed="true">I &middot; BASIN</button><button disabled>II &middot; CARAVAN</button><button disabled>III &middot; DEPOT</button><button disabled>IV &middot; OASIS</button><button disabled>V &middot; NEON</button><button disabled>VI &middot; PIER 9</button><button disabled>VII &middot; THE PASS</button></div>
     <div class="keys">
       <kbd>W A S D</kbd><span>Move (always at full speed)</span>
       <kbd>Mouse</kbd><span>Aim &middot; left click fires &middot; hold right click to aim down sights</span>
@@ -214,8 +214,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildGuns} from './guns.js?v=54';
-import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=54';
+import {buildGuns} from './guns.js?v=55';
+import {tr,getLang,setLang,applyDom,compassLabel} from './i18n.js?v=55';
 {
 const $=id=>document.getElementById(id);
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -566,7 +566,7 @@ function toGLB(j){const uri=j.buffers[0].uri;delete j.buffers[0].uri;const bin=U
  dv.setUint32(0,0x46546C67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);
  dv.setUint32(12,js.length+jp,true);dv.setUint32(16,0x4E4F534A,true);u.set(js,20);u.fill(32,20+js.length,20+js.length+jp);
  const o=20+js.length+jp;dv.setUint32(o,bin.length+bp,true);dv.setUint32(o+4,0x004E4942,true);u.set(bin,o+8);return out;}
-const BUILD='54';const VQ='?v='+BUILD;
+const BUILD='55';const VQ='?v='+BUILD;
 const MODELS={};const gl=new GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
 const MODEL_FILES=['skull_hopper','demon','orc_brute','imp','raptor','trex','trike','spider','wasp','bull','gunbot','drone','mech','alien_large','alien_small','alien_mite'];
 const CITY_FILES=['k_ambulance','k_box','k_cone','k_garbage-truck','k_police','k_sedan','k_suv','k_taxi','k_truck','k_van','q_AC','q_AC_Stacked','q_Antenna_1','q_Fence','q_Light_Street_1','q_Light_Street_2','q_Pipe_1','q_Sign_1','q_Sign_2','q_Sign_3','q_Sign_4','q_Sign_Stop','q_Streetlight_Double','q_Streetlight_Single','q_TV_1','q_TrafficLight','q_Trashcan_Green','q_Trashcan_Large'];
@@ -886,6 +886,49 @@ function buildLevel6(){ // Pier 9: a container terminal at night. No waves - cut
   const con=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.5,1.5),dark);con.position.set(-.6,1.8,0);g.add(con);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xcfe8ff,transparent:true,depthWrite:false}));sp.scale.setScalar(5);sp.position.set(-.6,3,0);g.add(sp);for(const[c,z]of[[0x30ff60,1.4],[0xff3030,-1.4]]){const n=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false}));n.scale.setScalar(1.6);n.position.set(3.6,1.4,z);g.add(n);}g.position.set(-50,0,-150);g.visible=false;L(g);MIS.boat=g;
   MIS.zone={x:-50,z:-50.5,name:'BOAT'};const ring=new THREE.Mesh(new THREE.RingGeometry(4,4.6,40),new THREE.MeshBasicMaterial({color:0x5fe0ff,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(-50,.05,-50.5);ring.visible=false;L(ring);MIS.ring=ring;}
  flowBuild();}
+// ---- Arena VII: Dead Man's Pass - a canyon you fight your way down, ward by ward
+const PASS={on:false,Z:[95,35,-30,-95,-192],wards:[],caves:[[-1,122],[1,110],[-1,62],[1,56],[-1,24],[1,-22],[-1,-64],[1,-70]]};
+function cliffX(z,y){return 27+Math.sin(z*.045)*2.6+Math.sin(z*.13+1.7)*1.5+Math.sin(z*.31+.4)*.7+Math.floor(y/7)*1.7+y*.13+Math.sin(z*.6+y*.9)*.45;}
+function cliffStrip(nu,fn,mat){const ny=13,H=50,pos=[],col=[],uv=[],idx=[],c=new THREE.Color();const PAL=[0x8f4326,0xb25c34,0xc47646,0xa35030,0xcf8d5c,0x7f3a22,0xba6a3e];
+ for(let i=0;i<=nu;i++)for(let j=0;j<=ny;j++){const y=j/ny*H,p=fn(i/nu,y);pos.push(p[0],y,p[1]);const band=Math.floor((y+Math.sin(i*.11)*1.6+Math.sin(i*.37)*.6)/3.2);c.setHex(PAL[(band*5+7)%PAL.length]).multiplyScalar(.82+.3*Math.abs(Math.sin(i*1.7+j*2.3)));if(y<1.5)c.multiplyScalar(.8);col.push(c.r,c.g,c.b);uv.push(i*.24,y/7);}
+ for(let i=0;i<nu;i++)for(let j=0;j<ny;j++){const a=i*(ny+1)+j,b=a+ny+1;idx.push(a,b,a+1,b,b+1,a+1);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const m=new THREE.Mesh(g,mat);m.receiveShadow=true;return L(m);}
+function buildLevel7(){BOUNDS={x0:-25,x1:25,z0:PASS.Z[0]+1.5,z1:158};const Z=PASS.Z;
+ const cm=rockMat.clone();cm.vertexColors=true;cm.color.set(0xffffff);cm.side=THREE.DoubleSide;
+ for(const sd of[-1,1])cliffStrip(190,(u,y)=>{const z=170-u*380;return[sd*cliffX(z+sd*37,y),z];},cm);
+ cliffStrip(50,(u,y)=>{const x=-50+u*100;return[x,164+Math.sin(x*.2)*1.5+Math.floor(y/7)*1.7+y*.13];},cm);cliffStrip(50,(u,y)=>{const x=-50+u*100;return[x,-198-Math.sin(x*.17)*1.8-Math.floor(y/7)*1.7-y*.13];},cm);
+ let sd=4471;const R=()=>{sd=sd+0x6D2B79F5|0;let t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+ const prock=(x,z,r,h,col=true)=>{const g=new THREE.IcosahedronGeometry(1,r>6?4:3),p=g.attributes.position,k=R()*9,cs=[],c=new THREE.Color();
+  for(let i=0;i<p.count;i++){const vx=p.getX(i),vy=p.getY(i),vz=p.getZ(i);const f=1+.24*Math.sin(vx*3.1+k)*Math.sin(vy*2.7+k*2)+.13*Math.sin(vz*6.3+k*3)+.06*Math.sin(vx*11+vy*9);p.setXYZ(i,vx*f,Math.max(-.4,vy*f),vz*f);c.setHex(vy>.25?0xc47646:vy>-.1?0xa35030:0x8f4326).multiplyScalar(.85+.25*Math.sin(i*1.3+k));cs.push(c.r,c.g,c.b);}
+  g.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));{const nn=g.attributes.normal,v=new THREE.Vector3();for(let i=0;i<p.count;i++){v.set(p.getX(i),p.getY(i)*1.3+.15,p.getZ(i)).normalize();nn.setXYZ(i,v.x,v.y,v.z);}}const m=new THREE.Mesh(g,cm);m.scale.set(r,h,r*(.8+R()*.4));m.position.set(x,h*.38,z);m.rotation.y=R()*6.28;m.castShadow=m.receiveShadow=true;L(m);if(col)colliders.push({x,z,r:r*.88});};
+ // rubble along the foot of both walls, so the cliff does not meet the floor in a clean line
+ for(let z=160;z>-196;z-=9+R()*8)for(const s of[-1,1])if(R()<.75){const r=1.6+R()*2.6;prock(s*(cliffX(z+s*37,0)-r*.2-R()*1.5),z,r,r*(.6+R()*.7),false);}
+ // zone 0: the mouth
+ prock(-12,130,3.2,3);prock(14,114,4,4.2);prock(-5,104,2.4,2.2);prock(19,140,3,2.6);
+ // zone 1: a wrecked caravan
+ [[-9,74,0],[-6.5,73,.4],[-8,71.4,1.2],[7,62,.2],[9.4,61,1.1],[8,58.8,2],[-15,50,.5],[2,48,1.5]].forEach(([x,z,r],i)=>placeProp(['wooden_crate_01','wooden_crate_02','old_military_crate','wooden_military_crate'][i%4],x,z,1.4+(i%3)*.25,{rot:r,col:'box'}));
+ barrel(-5,70);barrel(10.5,64);barrel(-13,52);barrel(4,46);prock(16,80,3.4,3.2);prock(-18,60,3,3.6);prock(13,42,2.6,2.4);
+ // zone 2: the narrows
+ prock(-21,2,12.5,15);prock(21,-2,12.5,14);prock(-3,22,2.2,2);prock(6,-20,2.6,2.4);
+ // zone 3: a ruined shrine with ledges for shooters
+ const perches=[];for(const[x,z]of[[-21,-48],[21,-58],[-21,-76],[21,-84]]){addBlock(x,z,7,6.5,9,0,blockMat,3);colliders[colliders.length-1].h=6.5;perches.push({x,z,y:6.5});}
+ for(const[x,z]of[[-8,-44],[8,-44],[-8,-62],[8,-62],[-8,-80],[8,-80]])addPillar(x,z,1.3,z==-62?5:9);addBlock(0,-62,5,1.6,5,Math.PI/4,blockMat,3);
+ LEVELS[LEVEL].perches=perches;
+ // zone 4: the bowl
+ for(const[x,z]of[[-15,-120],[15,-120],[-15,-170],[15,-170]])addPillar(x,z,1.8,12);addObelisk(0,-145);prock(-19,-146,3,3);prock(18,-150,3.4,3.6);
+ // wards
+ PASS.wards=Z.slice(0,4).map(z=>{const wm=new THREE.MeshBasicMaterial({color:0xff5a2a,transparent:true,opacity:.34,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(62,10),wm);pl.position.set(0,5,z);L(pl);const st=new THREE.Mesh(new THREE.PlaneGeometry(62,.5),new THREE.MeshBasicMaterial({color:0xff6a30,transparent:true,opacity:.8,depthWrite:false}));st.rotation.x=-Math.PI/2;st.position.set(0,.04,z);L(st);
+  for(const s of[-1,1]){const x=s*(cliffX(z+s*37,0)-2.5);const m=new THREE.Mesh(cylUV(new THREE.CylinderGeometry(1,1.3,11,12),1.2,11,3),pillarMat);m.position.set(x,5.5,z);m.castShadow=true;L(m);}
+  return {z,pl,st};});
+ // cave mouths the side spawns come out of
+ for(const[s,z]of PASS.caves){const m=new THREE.Mesh(new THREE.CircleGeometry(1,20),new THREE.MeshBasicMaterial({color:0x050302}));m.scale.set(4.5,5.5,1);m.position.set(s*(cliffX(z+s*37,3)-.9),2.4,z);m.rotation.y=-s*Math.PI/2;L(m);}
+ passGate(0);}
+function passSpawns(i){const z=PASS.Z[i]-11;if(i==4)return[{x:0,z:-186,spread:[18,2]}];const S=[{x:0,z,spread:[20,1.2]},{x:0,z,spread:[20,1.2]},{x:0,z,spread:[20,1.2]}];
+ for(const[sd,cz]of PASS.caves.slice(i*2,i*2+2))S.push({x:sd*27,z:cz,spread:[1,2.5]});return S;}
+function passGate(i){i=clamp(i,0,4);SPAWNS=passSpawns(i);BOUNDS.z0=PASS.Z[i]+1.5;PASS.wards.forEach((w,k)=>{w.pl.visible=w.st.visible=k>=i;});}
+function passStampede(){const n=5,z=BOUNDS.z0-26;for(let k=0;k<n;k++){const x=clamp(P.pos.x+(k-(n-1)/2)*3.4+rand(-.6,.6),-23,23);const e=spawnEnemy('bull',0,{x,z:z-rand(0,7)});e.dir=new THREE.Vector3(0,0,1);e.endZ=172;e.passive=true;e.entering=0;e.speed=TYPES.bull.speed*rand(.92,1.08);}
+ SFX.stampede();flashBanner('STAMPEDE!','GET OUT OF THEIR PATH',1.8);}
 // ---- mission controller (Pier 9): three different fights for three relays, a horde in the middle, a boss at each end
 const MIS={on:false,relays:[],done:[],ph:'idle',t:0,tm:0,hold:0,holdN:1,trick:0,cardT:0,snapDue:false,boat:null,ring:null,zone:{x:0,z:0,name:'BOAT'},target:null,act:'go',nd:0,ex:0,sp:0,beep:0,late:false,boss:null};
 const MHORDE=['spider','spider','spider','bomber','bomber','xeno','grunt'],MHORDE2=['spider','spider','bomber','bomber','xeno','xeno','gunbot','drone'],MSQUAD=['xeno','spider','spider','gunbot','drone'];
@@ -978,7 +1021,14 @@ const LEVELS=[
    [['spider',26,.4],['splitter',3,4],['drone',5,2]],[['grunt',8,1.3],['gunbot',6,1.9],['drone',6,1.8],['bomber',22,.5],['brute',1,8]],[['mech',1,1],['drone',5,3.5],['gunbot',4,4]]]},
  {name:'PIER 9',music:'depot',mission:1,desc:'No waves here. Blow three signal relays in the container terminal - a stand, a race and a boss - then hold the quay until the boat comes in.',build:buildLevel6,props:['Barrel_01','concrete_road_barrier','wooden_military_crate'],ground:'asphalt',night:1,start:[0,52,0],
   light:{sun:0x9fb0d8,int:.36,exp:1,fog:[0x0a0e16,34,210],hemi:[0x7484ac,0x16110c,.3]},events:[],tag:[],
-  waves:[[['grunt',1,1],['gunbot',1,1],['drone',1,1],['shield',1,1],['sniper',1,1],['bomber',1,1],['brute',1,1],['spider',1,1],['xeno',1,1],['mech',1,1],['boss',1,1]]]}
+  waves:[[['grunt',1,1],['gunbot',1,1],['drone',1,1],['shield',1,1],['sniper',1,1],['bomber',1,1],['brute',1,1],['spider',1,1],['xeno',1,1],['mech',1,1],['boss',1,1]]]},
+ {name:"DEAD MAN'S PASS",music:'oasis',push:1,desc:'A canyon with one way through. Clear each stretch to drop the ward, then move up. A stampede, a horde in the narrows, and the Tyrant waiting in the bowl at the end.',build:buildLevel7,props:['Barrel_01','old_military_crate','wooden_crate_01','wooden_crate_02','wooden_military_crate'],ground:'rocks',start:[0,150,0],
+  light:{sun:0xffd2a0,int:2.5,exp:.98,fog:[0xd9a878,90,430]},events:[],force:{1:'stampede'},rush:{2:{sec:50,rate:.4,types:['raptor','spider','spider','bomber','ghoul','ghoul']}},tag:['THE MOUTH','THE WRECK','THE NARROWS','THE SHRINE','THE TYRANT'],
+  waves:[[['raptor',14,1.1],['ghoul',12,1.2],['grunt',5,4,5],['bomber',8,2,10],['flyer',6,3,14]],
+   [['xeno',10,2],['spider',20,.8],['grunt',6,4,6],['raptor',8,2.5,12],['stalker',8,2.5,6]],
+   [['raptor',8,2],['spider',12,1],['brute',2,16,24]],
+   [['revenant',12,1.6],['sniper',4,5],['trike',2,14,4],['stalker',10,2.2,8],['xeno',8,2.5,16],['grunt',6,4,10],['brute',2,16,14]],
+   [['trex',1,1],['raptor',14,3,6],['spider',16,1.3,10],['flyer',8,4,20]]]}
 ];
 const STORM={on:false,k:0,base:null,col:new THREE.Color(0xc59c6e),wind:new THREE.Vector3(9,0,3.5)};
 function updateStorm(dt){const want=STORM.on?1:0;STORM.k+=(want-STORM.k)*Math.min(1,dt*.5);const B=STORM.base;if(!B)return;const k=STORM.k;
@@ -991,13 +1041,13 @@ function unlocked(){return LEVELS.length-1; /* prototype: every arena open for p
 function buildLevel(i){LEVEL=i;const D=LEVELS[i];
  for(const c of [...levelRoot.children]){levelRoot.remove(c);c.traverse(o=>{if(o.isMesh&&o.geometry&&!o.geometry.userData?.shared&&!o.isSkinnedMesh)o.geometry.dispose?.();});}
  colliders.length=0;barrels.length=0;pads.length=0;POND=null;decals.forEach(d=>{d.userData.t=0;d.material.opacity=0;});scorches.forEach(c=>{c.userData.t=0;c.material.opacity=0;});
- BOUNDS={x0:-95,x1:95,z0:-95,z1:95};FLOW.on=false;MIS.on=false;MIS.relays=[];MIS.boat=null;$('prompt').hidden=true;D.build();MIS.on=!!D.mission;WAVES=D.waves;
+ BOUNDS={x0:-95,x1:95,z0:-95,z1:95};FLOW.on=false;PASS.on=!!D.push;MIS.on=false;MIS.relays=[];MIS.boat=null;$('prompt').hidden=true;D.build();MIS.on=!!D.mission;WAVES=D.waves;
  window.__ground.material=D.ground=='rocks'?groundMat2:D.ground=='asphalt'?asphaltMat:groundMat;
  applyNight(!!D.night);gunLight.intensity=D.night?3.6:0;loadTrack(D.music||'music');loadTrack('boss');musicPlay(D.music||'music');if(D.night){NIGHT.hemi=D.light.hemi[2];hemi.color.set(D.light.hemi[0]);hemi.groundColor.set(D.light.hemi[1]);hemi.intensity=NIGHT.hemi;}
  STORM.on=false;STORM.k=0;STORM.base=D.light.fog;sun.color.set(D.light.sun);sun.intensity=D.light.int;renderer.toneMappingExposure=D.light.exp;scene.fog.color.set(D.light.fog[0]);scene.fog.near=D.light.fog[1];scene.fog.far=D.light.fog[2];
  Object.assign(sun.shadow.camera,{left:-SH,right:SH,top:SH,bottom:-SH,near:10,far:420});sun.shadow.camera.updateProjectionMatrix();
  P.pos.set(D.start[0],0,D.start[1]);P.yaw=D.start[2];P.pitch=0;followSun(true);
- $('lvlsub').textContent=tr('ARENA '+['I','II','III','IV','V','VI'][i]+' · '+D.name);$('lvldesc').textContent=tr(D.desc);
+ $('lvlsub').textContent=tr('ARENA '+['I','II','III','IV','V','VI','VII'][i]+' · '+D.name);$('lvldesc').textContent=tr(D.desc);
  document.querySelectorAll('#lvls button').forEach((b,k)=>{b.setAttribute('aria-pressed',k==i);b.disabled=k>unlocked();});
  try{localStorage.setItem('sf_level',i);}catch(e){}showBest();}
 
@@ -1320,7 +1370,7 @@ function updatePickups(dt){for(let i=pickups.length-1;i>=0;i--){const k=pickups[
 
 let perchT=0,cardsDue=false,snap=null,dryT=0,wave=-1,queue=[],spawnT=0,waveState='idle',waveTimer=0,elapsed=0;
 function frontGate(){let best=0,bd=-9;const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);SPAWNS.forEach(({x,z},k)=>{x-=P.pos.x;z-=P.pos.z;const d=(x*fx+z*fz)/Math.hypot(x,z)+rand(0,.9);if(d>bd){bd=d;best=k;}});return best;}
-function startWave(i){wave=i;queue=[];snap={score,kills,ammo:WEAPONS.map(w=>w.ammo),ar:P.ar,pk:{...PK}};rollEvent(i);
+function startWave(i){wave=i;queue=[];if(PASS.on)passGate(i);snap={score,kills,ammo:WEAPONS.map(w=>w.ammo),ar:P.ar,pk:{...PK}};rollEvent(i);
  WAVES[i].forEach(([type,n,gap,delay=0])=>{const big=type=='boss'||TYPES[type].heavy||type=='summoner'||type=='shield';n=Math.max(1,Math.round(n*(big?Math.min(1,DIFF.count):DIFF.count)));gap/=Math.sqrt(DIFF.count);
   const pk_=PACK[type]||1;let gate=0;for(let k=0;k<n;k++){if(k%pk_==0)gate=i<2&&LEVEL==0?frontGate():Math.floor(rand(0,SPAWNS.length));const at=delay+Math.floor(k/pk_)*gap*pk_+(k%pk_)*.18+rand(0,gap*.3);queue.push({type,at,gate});}});
  queue.sort((a,b)=>a.at-b.at);spawnT=0;waveState='fight';STORM.on=!!(LEVELS[LEVEL].storm||[]).includes(i);SFX.waveStart();musicPlay(i==WAVES.length-1?'boss':levelTrack());MUS.target=.55+i*.09;
@@ -1337,10 +1387,10 @@ function updateWaves(dt){
     for(const e of al){const q=e.g.position;if(Math.abs(q.x)>Math.abs(q.z))q.z=Math.sign(q.z)*10;else q.x=Math.sign(q.x)*10;q.y=0;e.perch=false;e.perchAt=null;e.ph='move';e.laser.visible=false;e.eye.visible=false;smoke(new THREE.Vector3(q.x,1,q.z),{n:4,size:1.4,grow:2,life:1,color:0x3a3a44,alpha:.45,spread:.6,rise:.6});}}}else perchT=0;}
   if(!queue.length&&rushT<=0&&!enemies.some(e=>e.alive&&!e.passive)){
    if(wave==WAVES.length-1){win();return;}
-   waveState='rest';waveTimer=6;STORM.on=false;MUS.target=.1;WEAPONS.forEach(w=>w.ammo=Math.min(w.max,w.ammo+Math.ceil(w.max*.25)));grenades=Math.min(nadeMax(),grenades+1);if(autoSide&&cur==3)autoSwitch();SFX.clear();flashBanner('WAVE CLEARED','NEXT IN 6',1.6);radio(RADIO.clear[wave%3],4);
-   for(let k=0;k<3;k++)dropPickup(new THREE.Vector3(rand(-40,40),0,rand(-40,40)),['health','ammo','armor'][k]);
+   waveState='rest';waveTimer=6;STORM.on=false;MUS.target=.1;WEAPONS.forEach(w=>w.ammo=Math.min(w.max,w.ammo+Math.ceil(w.max*.25)));grenades=Math.min(nadeMax(),grenades+1);if(autoSide&&cur==3)autoSwitch();SFX.clear();flashBanner('WAVE CLEARED',PASS.on?'THE WARD IS DOWN · MOVE UP':'NEXT IN 6',PASS.on?2.4:1.6);radio(RADIO.clear[wave%3],4);if(PASS.on)passGate(wave+1);
+   for(let k=0;k<3;k++)dropPickup(PASS.on?new THREE.Vector3(clamp(P.pos.x+(k-1)*5,-20,20),0,Math.max(PASS.Z[wave]+5,P.pos.z-6)):new THREE.Vector3(rand(-40,40),0,rand(-40,40)),['health','ammo','armor'][k]);
    EVENT=null;cardsDue=wave%2==1;}}
- else if(waveState=='rest'){if(cardsDue&&waveTimer<5){cardsDue=false;openCards();return;}waveTimer-=dt;if(waveTimer<=0)startWave(wave+1);}
+ else if(waveState=='rest'){if(cardsDue&&waveTimer<5){cardsDue=false;openCards();return;}waveTimer-=dt;if(waveTimer<=0){if(PASS.on&&wave>=0&&P.pos.z>PASS.Z[wave]-7)waveTimer=0;else startWave(wave+1);}}
  dryT-=dt;if(waveState=='fight'&&dryT<=0&&WEAPONS[0].ammo==0&&WEAPONS[1].ammo==0&&!hasAmmo(WEAPONS[4])&&!pickups.some(k=>k.kind=='ammo')){const a=P.yaw+rand(-.5,.5),d=rand(8,11);const q=new THREE.Vector3(P.pos.x-Math.sin(a)*d,0,P.pos.z-Math.cos(a)*d);collideCircle(q,1);dropPickup(q,'ammo');dryT=6;flashBanner('AMMO DROP','IT IS RIGHT IN FRONT OF YOU',1.4,true);}
  updateHud();}
 let bannerT=0;
@@ -1566,8 +1616,8 @@ function updateBull(e,dt){const p=e.g.position;p.x+=e.dir.x*e.speed*dt;p.z+=e.di
  for(const o of enemies){if(o===e||!o.alive||o.passive||TYPES[o.type].fly||o.bullHit===e)continue;const ox=o.g.position.x-p.x,oz=o.g.position.z-p.z;if(ox*ox+oz*oz<(e.r+o.r)**2){o.bullHit=e;damageEnemy(o,45,e.dir.clone(),'ram',2.5);}}
  e.st=(e.st||0)-dt;if(e.st<=0){e.st=.25;smoke(new THREE.Vector3(p.x,.4,p.z),{n:1,size:1.3,grow:2.5,life:1,color:0xcdb08a,alpha:.35,rise:.3});}
  if(e.flash>0){e.flash-=dt;const k=clamp(e.flash/.09,0,1);e.mats.forEach(m=>m.emissive&&m.emissive.setRGB(k*.9,k*.55,k*.4));}
- if(Math.hypot(p.x,p.z)>(BOUNDS.r||BOUNDS.x1)+22&&e.t>2){e.alive=false;removeEnemyObj(e);}}
-function stampede(){const R=(BOUNDS.r||BOUNDS.x1);const a=rand(0,6.28);const dir=new THREE.Vector3(Math.cos(a),0,Math.sin(a));const perp=new THREE.Vector3(-dir.z,0,dir.x);
+ if((e.endZ!=null?p.z>e.endZ:Math.hypot(p.x,p.z)>(BOUNDS.r||BOUNDS.x1)+22)&&e.t>2){e.alive=false;removeEnemyObj(e);}}
+function stampede(){if(PASS.on)return passStampede();const R=(BOUNDS.r||BOUNDS.x1);const a=rand(0,6.28);const dir=new THREE.Vector3(Math.cos(a),0,Math.sin(a));const perp=new THREE.Vector3(-dir.z,0,dir.x);
  const lat=P.pos.x*perp.x+P.pos.z*perp.z;const n=7;for(let k=0;k<n;k++){const off=lat+(k-(n-1)/2)*3.4+rand(-.6,.6);const back=R+12+rand(0,7);
   const x=perp.x*off-dir.x*back,z=perp.z*off-dir.z*back;const e=spawnEnemy('bull',0,{x,z});e.dir=dir.clone();e.passive=true;e.entering=0;e.speed=TYPES.bull.speed*rand(.92,1.08);}
  SFX.stampede();flashBanner('STAMPEDE!','GET OUT OF THEIR PATH',1.8);}
@@ -1662,12 +1712,12 @@ let compT=0;
 // heading strip slides every frame; markers (boss, bounty, nearest ammo, health when hurt) refresh ~12 times a second
 function updateCompass(rdt){const hd=((-P.yaw*180/Math.PI)%360+360)%360;cstrip.style.transform='translateX('+(-(hd+180)*CPX).toFixed(1)+'px)';
  compT-=rdt;if(compT>0)return;compT=.08;const items=[];const add=(pos,cls)=>items.push({a:relAngle(pos),d:Math.hypot(pos.x-P.pos.x,pos.z-P.pos.z),cls});
- if(MIS.on&&MIS.target)add(MIS.target,'obj');
+ if(MIS.on&&MIS.target)add(MIS.target,'obj');if(PASS.on&&waveState=='rest'&&wave>=0)add({x:0,z:PASS.Z[wave]-7},'obj');
  for(const e of enemies){if(!e.alive)continue;if(e.boss)add(e.g.position,'boss');else if(e===bountyE)add(e.g.position,'gold');}
  let na=null,nh=null;for(const k of pickups){const d=(k.g.position.x-P.pos.x)**2+(k.g.position.z-P.pos.z)**2;if(k.kind=='ammo'){if(!na||d<na.d)na={d,k};}else if(k.kind=='health'&&P.hp<60){if(!nh||d<nh.d)nh={d,k};}}
  if(na)add(na.k.g.position,'ammo');if(nh)add(nh.k.g.position,'med');const half=$('compass').clientWidth/2;
  cmarks.forEach((b,i)=>{const it=items[i];if(!it){b.hidden=true;return;}b.hidden=false;b.className=it.cls;b.style.left=clamp(half+it.a*180/Math.PI*CPX,half-half*.8,half+half*.8)+'px';b.textContent=Math.round(it.d)+'m';});}
-const RADIO={intro:['Ranger, this is Control. Seven waves inbound over the dunes. Hold the basin.','No walls out here, Ranger. Keep your head on a swivel and watch the sky.','Tight quarters in the depot. Those red drums cut both ways. Use them.','Readings by the water are off the chart. Something big lives here. Use the jump pads.','Neon District is dark and wet. Shooters on the rooftops. Watch for the red lasers.','Ranger, no waves tonight. Three relays in the yard are jamming us. Blow them, then get to the quay. The beam marks the next one.'],
+const RADIO={intro:['Ranger, this is Control. Seven waves inbound over the dunes. Hold the basin.','No walls out here, Ranger. Keep your head on a swivel and watch the sky.','Tight quarters in the depot. Those red drums cut both ways. Use them.','Readings by the water are off the chart. Something big lives here. Use the jump pads.','Neon District is dark and wet. Shooters on the rooftops. Watch for the red lasers.','Ranger, no waves tonight. Three relays in the yard are jamming us. Blow them, then get to the quay. The beam marks the next one.','One way through this canyon, Ranger. Each ward drops when the stretch behind it is clear. Keep moving up.'],
  mcontact:'Contact. They have seen you.',mcut:['Alpha is gone. Bravo is calling a lockdown. Get there before it lands.','Bravo is down. They are throwing everything at you. Ammo is on us.','All three are down. Boat is inbound. The Warlord is coming for you.'],mhot:'Charge is set. Keep them off it.',mback:'Get back to the charge. The timer has stopped.',mlate:'Too late. The lockdown is in. Heavies on Bravo.',mench:'The Enforcer is guarding Charlie. The relay is shielded until it falls.',mshield:'Shield is down. Plant it.',mwar:'The boat cannot dock with the Warlord on the quay. Put him down.',mboat:'Boat is at the quay. Get aboard, Ranger.',mwin:'Ranger is aboard. Good work. Pier 9 is dark.',
  clear:['Wave down. Resupply is on the field. Catch your breath.','Good shooting. More on the way. Reload and move.','Clear. Grab what you can before the next push.'],
  rush:'Horde inbound. Command has opened the ammo line: fire as much as you like until it ends.',three:'Three left. Finish it.',hurt:'You are hurt, Ranger. Break contact and find a medkit.',dry:'You are dry. Sidearm up. The ammo crate is on your compass.',boss:'Big signature inbound. This is the one. Hit it with everything.',
@@ -1717,7 +1767,7 @@ function updateHud(){if(bossE)$('bossbar').style.transform='scaleX('+clamp(bossE
  const left=queue.length+enemies.filter(e=>e.alive&&!e.passive).length;
  if(MIS.on){const[a,b]=misHud();setT('wavet',a);setT('waveleft',b);}else{
  setT('wavet',wave<0?'GET READY':rushT>0?'HORDE RUSH · '+Math.ceil(rushT):'WAVE '+(wave+1)+' / '+WAVES.length);
- setT('waveleft',waveState=='rest'?'NEXT WAVE IN '+Math.ceil(waveTimer):left+' HOSTILES'+(EVENT?' · '+EVENTS[EVENT]:''));}
+ setT('waveleft',waveState=='rest'?(PASS.on&&wave>=0?'MOVE UP · '+Math.max(0,Math.ceil(P.pos.z-PASS.Z[wave]+7))+' M':'NEXT WAVE IN '+Math.ceil(waveTimer)):left+' HOSTILES'+(EVENT?' · '+EVENTS[EVENT]:''));}
  const mult=multOf(combo)*(EVENT=='frenzy'?2:1);setT('combo',combo>=3?combo+' KILLS'+(mult>1?'  ×'+mult:''):'');}
 
 /* ---------- state ---------- */
@@ -1729,8 +1779,8 @@ function resetGame(){clearField();musicPlay(levelTrack());eShots.forEach(s=>scen
  pickups.forEach(k=>scene.remove(k.g));pickups.length=0;
  {const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:0,alive:true,yaw:D.start[2],pitch:0});P.pos.set(D.start[0],0,D.start[1]);}P.vel.set(0,0,0);
  PK={};applyPerks();P.inv=0;WEAPONS.forEach((w,k)=>{w.ammo=START_AMMO[k];if(w.mag)w.clip=w.mag;});grenades=3;reloadT=0;adsDown=false;score=kills=combo=bestCombo=shots=hits=headshots=hsStreak=0;elapsed=0;wave=-1;waveState='rest';waveTimer=3;
- selectWeapon(0);guns[0].visible=true;if(MIS.on)missionReset([]);updateHud();}
-function retryWave(){const w=Math.max(0,wave);clearField();{const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:snap?snap.ar:0,alive:true,yaw:D.start[2]});musicPlay(levelTrack());P.vel.set(0,0,0);P.pos.set(D.start[0],0,D.start[1]);}
+ selectWeapon(0);guns[0].visible=true;if(MIS.on)missionReset([]);if(PASS.on)passGate(0);updateHud();}
+function retryWave(){const w=Math.max(0,wave);clearField();{const D=LEVELS[LEVEL];Object.assign(P,{hp:100,ar:snap?snap.ar:0,alive:true,yaw:D.start[2]});musicPlay(levelTrack());P.vel.set(0,0,0);P.pos.set(D.start[0],0,D.start[1]);if(PASS.on){passGate(w);if(w>0)P.pos.z=PASS.Z[w-1]-8;}}
  if(snap){score=snap.score;kills=snap.kills;PK={...snap.pk};applyPerks();WEAPONS.forEach((x,k)=>{x.ammo=Math.max(snap.ammo[k],START_AMMO[k]);if(x.mag)x.clip=x.mag;});}combo=0;grenades=Math.max(grenades,2);reloadT=0;adsDown=false;wave=w-1;waveState='rest';waveTimer=3;MUS.target=.1;if(MIS.on)missionReset(snap&&snap.mis||[],true);updateHud();
  initAudio();$('end').hidden=true;state='play';lock();}
 function begin(){initAudio();if(!MUS.on)musicStart();$('start').hidden=true;$('end').hidden=true;$('pause').hidden=true;
@@ -1757,7 +1807,7 @@ try{const d=localStorage.getItem('sf_diff');if(d&&DIFFS[d])document.querySelecto
 let smoothAim=true;try{if(localStorage.getItem('sf_smooth')=='0'){smoothAim=false;$('smooth').checked=false;}}catch(_){}
 $('smooth').onchange=e=>{smoothAim=e.target.checked;try{localStorage.setItem('sf_smooth',smoothAim?'1':'0')}catch(_){}};
 function refreshLang(){for(const k in hudCache)delete hudCache[k];compassLabels();document.querySelectorAll('#langs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l==getLang()));
- if(LEVELS[LEVEL]){$('lvlsub').textContent=tr('ARENA '+['I','II','III','IV','V','VI'][LEVEL]+' · '+LEVELS[LEVEL].name);$('lvldesc').textContent=tr(LEVELS[LEVEL].desc);}showBest();updLoad();$('perks').textContent=perkText();}
+ if(LEVELS[LEVEL]){$('lvlsub').textContent=tr('ARENA '+['I','II','III','IV','V','VI','VII'][LEVEL]+' · '+LEVELS[LEVEL].name);$('lvldesc').textContent=tr(LEVELS[LEVEL].desc);}showBest();updLoad();$('perks').textContent=perkText();}
 document.querySelectorAll('#langs button').forEach(b=>b.onclick=()=>{setLang(b.dataset.l);refreshLang();});
 applyDom();refreshLang();
 function setSens(v,save){sens=+v;$('sens').value=$('sens2').value=v;if(save)try{localStorage.setItem('sf_sens',v)}catch(_){}}
@@ -1875,7 +1925,7 @@ async function fxDemo(){await loadLevel(1);window.__noPause=true;begin();P.hp=1e
  let mode=0;const lab=document.createElement('div');lab.style.cssText='position:fixed;left:50%;top:90px;transform:translateX(-50%);background:#000c;color:#fff;font:bold 22px sans-serif;padding:6px 14px;z-index:99';document.body.appendChild(lab);
  const M=['EXPLOSIONS ONLY','FIREBALLS ONLY'];lab.textContent=M[0];window.__fxmode=()=>mode;
  const it=setInterval(()=>{if(n++>400){clearInterval(it);return;}P.hp=1e9;const d=[6,10,16,24][n%4];const x=P.pos.x+rand(-4,4),z=P.pos.z-d;
-  if(window.__fxmode()==0){for(const e of enemies)if(e.alive){e.alive=false;removeEnemyObj(e);}explode(new THREE.Vector3(x,1,z),n%2?7.5:5,0,n%2==0,null);}else if(enemies.filter(e=>e.alive).length<6){const e=spawnEnemy('grunt',0);e.g.position.set(x+rand(-6,6),0,z-8);e.entering=0;e.fire=.4;e.speed=0;}},700);}window.__game={get state(){return state},MIS,FLOW,nav(x,z){return FLOW.on?flowTo(P.pos,x,z):null;},P,enemies,WEAPONS,get wave(){return wave},get score(){return score},get kills(){return kills},get fps(){return fps},
+  if(window.__fxmode()==0){for(const e of enemies)if(e.alive){e.alive=false;removeEnemyObj(e);}explode(new THREE.Vector3(x,1,z),n%2?7.5:5,0,n%2==0,null);}else if(enemies.filter(e=>e.alive).length<6){const e=spawnEnemy('grunt',0);e.g.position.set(x+rand(-6,6),0,z-8);e.entering=0;e.fire=.4;e.speed=0;}},700);}window.__game={get state(){return state},MIS,FLOW,PASS,get BOUNDS(){return BOUNDS},get waveState(){return waveState},nav(x,z){return FLOW.on?flowTo(P.pos,x,z):null;},P,enemies,WEAPONS,get wave(){return wave},get score(){return score},get kills(){return kills},get fps(){return fps},
  begin(){window.__noPause=true;begin();},keys,setMouse(v){mouseDown=v},look(y,p){P.yaw=y;P.pitch=p},skipTo(i){waveState='rest';waveTimer=0;wave=i-1;},
  god(){P.hp=1e9},spawn:spawnEnemy,loadLevel,get level(){return LEVEL},
  sim(sec,ai){for(let t=0;t<sec;t+=1/60){if(state=='cards')pickCard(Math.floor(Math.random()*cardOpts.length));if(ai)ai();if(state=='play'||state=='over')step(1/60,1/60);}return {state,wave,kills,score,n:enemies.length,hp:Math.round(P.hp),ammo:WEAPONS.map(w=>w.ammo)};},
